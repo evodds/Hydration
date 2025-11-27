@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppState } from "../state/AppStateContext";
 import { type DayOfWeek, type QuietPeriod, type Schedule } from "../types/schedule";
 import { generatePingTimes } from "../utils/time";
+import { createId } from "../utils/id";
 
 const dayLabels: Record<DayOfWeek, string> = {
   0: "Sun",
@@ -15,6 +16,7 @@ const dayLabels: Record<DayOfWeek, string> = {
 };
 
 const defaultSchedule: Schedule = {
+  id: createId("schedule"),
   name: "Workdays",
   daysOfWeek: [1, 2, 3, 4, 5],
   startTime: "09:00",
@@ -22,6 +24,8 @@ const defaultSchedule: Schedule = {
   numPings: 4,
   quietPeriods: [],
   isActive: true,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 export default function CreateSchedule() {
@@ -282,7 +286,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 shadow-card sm:px-5 sm:py-5">
+    <div className="space-y-3 rounded-2xl border border-white/40 bg-white/70 px-4 py-4 shadow-card backdrop-blur sm:px-5 sm:py-5">
       <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
         {title}
         {optional && (

@@ -45,7 +45,7 @@ export default function Settings() {
 
   const handlePauseToggle = () => {
     if (!state.schedule) return;
-    updateSchedule({ isActive: !state.schedule.isActive });
+    updateSchedule({ ...state.schedule, isActive: !state.schedule.isActive });
   };
 
   const handleDeleteAccount = () => {
@@ -64,7 +64,7 @@ export default function Settings() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <div className="rounded-2xl border border-white/40 bg-white/70 p-6 shadow-card backdrop-blur">
           <h2 className="text-lg font-semibold text-slate-900">Account</h2>
           <div className="mt-4 divide-y divide-slate-100 text-sm">
             <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -124,7 +124,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+        <div className="rounded-2xl border border-white/40 bg-white/70 p-6 shadow-card backdrop-blur">
           <h2 className="text-lg font-semibold text-slate-900">Time & reminders</h2>
           <div className="mt-4 space-y-4 text-sm">
             <div className="grid gap-2">

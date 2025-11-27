@@ -21,6 +21,18 @@ export default {
           accent: "#22c55e",
           danger: "#ef4444",
         },
+        hhp: {
+          bgTop: "#0b3b47",
+          bgBottom: "#d9f6ff",
+          card: "rgba(255,255,255,0.82)",
+          border: "rgba(255,255,255,0.35)",
+          textMain: "#0f172a",
+          textLight: "#f8fafc",
+          textMuted: "#6c7a89",
+          accentPrimary: "#0fa3c8",
+          accentPrimaryLight: "#37c2df",
+          accentSoft: "#e0f7ff",
+        },
       },
       borderRadius: {
         xl: "18px",

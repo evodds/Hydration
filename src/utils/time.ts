@@ -1,4 +1,5 @@
-import type { Schedule, DayOfWeek } from "../types/schedule";
+import type { Schedule, DayOfWeek, ReminderEvent } from "../types/schedule";
+import { createId } from "./id";
 
 export function parseTimeToMinutes(time: string): number {
   const [hRaw, mRaw] = time.split(":").map(Number);
@@ -122,4 +123,70 @@ function formatLabelTime(date: Date) {
 function formatWeekday(dayIndex: number) {
   const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   return names[dayIndex] ?? "Next";
+}
+
+function dayOfWeekFromDate(date: Date, timezone: string): DayOfWeek {
+  const name = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    weekday: "short",
+  }).format(date);
+  const map: Record<string, DayOfWeek> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return map[name] ?? 0;
+}
+
+function formatTimeLabel(date: Date, timezone: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export function generateReminderEventsForSchedule(
+  schedule: Schedule,
+  timezone: string,
+  numDays: number
+): ReminderEvent[] {
+  if (!schedule.isActive) return [];
+  const safeDays = Math.max(1, Math.min(numDays, 30));
+  const baseTimes = generatePingTimes(schedule);
+  if (!baseTimes.length) return [];
+
+  const events: ReminderEvent[] = [];
+  const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const now = new Date();
+
+  for (let offset = 0; offset < safeDays; offset += 1) {
+    const day = new Date(now);
+    day.setHours(12, 0, 0, 0); // midday anchor to reduce DST drift
+    day.setDate(now.getDate() + offset);
+    const weekday = dayOfWeekFromDate(day, tz);
+    if (!schedule.daysOfWeek.includes(weekday)) continue;
+
+    baseTimes.forEach((time) => {
+      const [h, m] = time.split(":").map(Number);
+      const eventDate = new Date(day);
+      eventDate.setHours(h, m, 0, 0);
+      events.push({
+        id: createId("reminder"),
+        scheduleId: schedule.id,
+        scheduledAt: eventDate.toISOString(),
+        localTimeLabel: formatTimeLabel(eventDate, tz),
+        status: "scheduled",
+      });
+    });
+  }
+
+  return events.sort(
+    (a, b) =>
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+  );
 }

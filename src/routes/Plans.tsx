@@ -34,17 +34,17 @@ export default function Plans() {
         {plans.map((plan) => (
           <div
             key={plan.title}
-            className={`rounded-2xl border p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-soft ${
+            className={`rounded-2xl border p-5 shadow-card backdrop-blur transition duration-150 ease-out hover:-translate-y-1 hover:shadow-soft ${
               plan.title.includes("Pro")
-                ? "border-cyan-200 bg-brand-primarySoft"
-                : "border-slate-200 bg-white"
+                ? "border-white/50 bg-white/60"
+                : "border-white/40 bg-white/70"
             }`}
           >
-            <h2 className="text-lg font-semibold">{plan.title}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{plan.title}</h2>
             {plan.subtitle && (
-              <p className="text-sm text-muted">{plan.subtitle}</p>
+              <p className="text-sm text-slate-600">{plan.subtitle}</p>
             )}
-            <ul className="mt-3 space-y-2 text-sm text-muted">
+            <ul className="mt-3 space-y-2 text-sm text-slate-700">
               {plan.items.map((item) => (
                 <li key={item}>• {item}</li>
               ))}
@@ -53,16 +53,16 @@ export default function Plans() {
               <span
                 className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
                   plan.title.includes("Pro")
-                    ? "bg-white/60 text-brand-primary"
+                    ? "bg-hhp-accentSoft text-hhp-accentPrimary"
                     : "bg-slate-100 text-slate-700"
                 }`}
               >
                 {plan.title.includes("Pro") ? "Coming soon" : "Current plan"}
               </span>
               <button
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                className={`rounded-full px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hhp-accentPrimary focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                   plan.title.includes("Pro")
-                    ? "border border-brand-primary bg-white text-brand-primary hover:bg-white/80"
+                    ? "border border-hhp-accentPrimary bg-gradient-to-r from-hhp-accentPrimary to-hhp-accentPrimaryLight text-white hover:scale-105"
                     : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
                 onClick={() => {

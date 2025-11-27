@@ -54,7 +54,7 @@ export default function OnboardingTimezone() {
 
   return (
     <div className="mx-auto flex max-w-3xl items-center justify-center px-4">
-      <div className="w-full space-y-8 rounded-3xl border border-slate-200 bg-white px-6 py-8 shadow-soft sm:px-8 sm:py-10">
+      <div className="w-full space-y-8 rounded-3xl border border-white/40 bg-white/70 px-6 py-8 shadow-soft backdrop-blur sm:px-8 sm:py-10">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Quick timezone check</h1>
           <p className="text-sm leading-relaxed text-slate-600">

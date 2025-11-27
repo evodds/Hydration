@@ -10,11 +10,46 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8fafc 0%, #ecfeff 40%, #f8fafc 100%);
+  background: linear-gradient(180deg, var(--hhp-bg-top, #0b3b47) 0%, var(--hhp-bg-bottom, #d9f6ff) 100%);
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
 }
 
 .page-shell {
   @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10;
+}
+
+:root {
+  --hhp-bg-top: #0b3b47;
+  --hhp-bg-bottom: #d9f6ff;
+}
+
+.hhp-backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hhp-backdrop::before,
+.hhp-backdrop::after {
+  content: "";
+  position: absolute;
+  width: 40vw;
+  height: 40vw;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.35;
+}
+
+.hhp-backdrop::before {
+  background: #0fa3c8;
+  top: -10%;
+  left: 5%;
+}
+
+.hhp-backdrop::after {
+  background: #22c55e;
+  bottom: -15%;
+  right: 10%;
 }

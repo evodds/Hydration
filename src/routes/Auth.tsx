@@ -22,13 +22,14 @@ export default function Auth() {
     setUser({
       email,
       timezone: state.user?.timezone || "",
+      createdAt: new Date().toISOString(),
     });
     navigate("/onboarding/timezone");
   };
 
   return (
     <div className="flex min-h-[calc(100vh-120px)] items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-200 bg-white px-6 py-7 shadow-soft sm:px-8 sm:py-8">
+      <div className="w-full max-w-md space-y-6 rounded-3xl border border-white/40 bg-white/70 px-6 py-7 shadow-soft backdrop-blur sm:px-8 sm:py-8">
         <div className="space-y-3 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-brand-primarySoft px-3 py-1 text-[11px] font-medium text-brand-primary">
             Step 1 of 3 • Sign in
