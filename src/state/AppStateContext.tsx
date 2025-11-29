@@ -1,266 +1,143 @@
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { AppState, UserProfile, Schedule, AppTier } from '../types/schedule';
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import type {
-  AppState,
-  AppTier,
-  ReminderEvent,
-  Schedule,
-  UserProfile,
-} from "../types/schedule";
-import { createId } from "../utils/id";
-import {
-  formatDateKey,
-  formatTimeKey,
-  generateReminderEventsForSchedule,
-  formatLocalTimeLabel,
-} from "../utils/time";
+  login as apiLogin,
+  updateUser as apiUpdateUser,
+  fetchSchedule as apiFetchSchedule,
+  saveSchedule as apiSaveSchedule,
+  updateSchedule as apiUpdateSchedule,
+  fetchReminderEvents as apiFetchReminderEvents,
+  logReminderAction as apiLogReminderAction,
+} from '../services/api';
 
-const STORAGE_KEY = "hydration-habit-ping-state";
-
-interface AppStateContextValue {
-  state: AppState;
-  setUser: (user: UserProfile | null) => void;
-  setSchedule: (schedule: Schedule | null) => void;
-  updateSchedule: (partial: Partial<Schedule>) => void;
-  setTier: (tier: AppTier) => void;
-  logReminderAction: (eventId: string, status: "drank" | "skipped") => void;
-  clearHistory: () => void;
-  clearAll: () => void;
-}
-
-const AppStateContext = createContext<AppStateContextValue | undefined>(
-  undefined
-);
-
+// 1. Define the default (empty) state
 const defaultState: AppState = {
   user: null,
   schedule: null,
   reminderEvents: [],
+  isLoading: true, // Add a new loading state
+  tier: 'free',
 };
 
-const normalizeUser = (storedUser: Partial<UserProfile> | null, storedTier?: AppTier): UserProfile | null => {
-  if (!storedUser) return null;
-  const now = new Date().toISOString();
-  return {
-    email: storedUser.email || "",
-    timezone: storedUser.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-    createdAt: storedUser.createdAt || now,
-    tier: storedUser.tier || storedTier || "free",
-  };
-};
+// 2. Update the Context Value interface
+interface AppStateContextValue {
+  state: AppState;
+  // Auth
+  login: (email: string) => Promise<void>;
+  logout: () => void;
+  // User
+  setUser: (user: UserProfile | null) => void;
+  setTier: (tier: AppTier) => Promise<void>;
+  // Schedule
+  setSchedule: (schedule: Schedule | null) => Promise<void>;
+  updateSchedule: (partial: Partial<Schedule>) => Promise<void>;
+  // Events
+  logReminderAction: (eventId: string, status: 'drank' | 'skipped') => Promise<void>;
+  clearHistory: () => void;
+  clearAll: () => void;
+}
 
-const normalizeEvent = (
-  raw: any,
-  fallbackTimezone: string,
-  fallbackScheduleName: string
-): ReminderEvent => {
-  const tz = raw.timezone || fallbackTimezone;
-  const scheduledAt: string | undefined = raw.scheduledAt;
-  const date = raw.date || (scheduledAt ? formatDateKey(new Date(scheduledAt), tz) : "");
-  const time =
-    raw.time ||
-    (scheduledAt ? formatTimeKey(new Date(scheduledAt), tz) : "") ||
-    "";
-  const localTimeLabel =
-    raw.localTimeLabel ||
-    (scheduledAt ? formatLocalTimeLabel(new Date(scheduledAt), tz) : time);
-  return {
-    id: raw.id || createId("reminder"),
-    scheduleId: raw.scheduleId || "",
-    scheduleName: raw.scheduleName || fallbackScheduleName,
-    timezone: tz,
-    date,
-    time,
-    scheduledAt: scheduledAt || new Date().toISOString(),
-    localTimeLabel,
-    status: raw.status === "drank" || raw.status === "skipped" ? raw.status : "scheduled",
-    createdAt: raw.createdAt || scheduledAt || new Date().toISOString(),
-    updatedAt: raw.updatedAt,
-  };
-};
+const AppStateContext = createContext<AppStateContextValue | undefined>(undefined);
 
-const readInitialState = (): AppState => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
-    const parsed = JSON.parse(raw);
-    const user = normalizeUser(parsed.user ?? null, parsed.tier);
-    const schedule = parsed.schedule ?? null;
-    const tz = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const eventsRaw: any[] = parsed.reminderEvents || parsed.events || parsed.history || [];
-    const reminderEvents = (eventsRaw as any[]).map((ev) => normalizeEvent(ev, tz, schedule?.name || ""));
+// 3. Rewrite the Provider
+export const AppStateProvider = ({ children }: { children: ReactNode }) => {
+  const [state, setState] = useState<AppState>(defaultState);
 
-    return {
-      user,
-      schedule,
-      reminderEvents,
-    } as AppState;
-  } catch (error) {
-    console.warn("Failed to parse stored state", error);
-    return defaultState;
-  }
-};
-
-export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(() => readInitialState());
-
-  useEffect(() => {
+  const login = useCallback(async (email: string) => {
+    setState((prev) => ({ ...prev, isLoading: true }));
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const user = await apiLogin(email);
+      const schedule = await apiFetchSchedule(user.id);
+      const events = await apiFetchReminderEvents(user.id);
+      setState({
+        user,
+        schedule,
+        reminderEvents: events || [],
+        isLoading: false,
+        tier: user.tier,
+      });
     } catch (error) {
-      console.warn("Failed to persist state", error);
+      console.error('Failed to log in:', error);
+      setState({ ...defaultState, isLoading: false });
     }
-  }, [state]);
+  }, []);
+
+  const logout = useCallback(() => {
+    setState({ ...defaultState, isLoading: false });
+  }, []);
 
   const setUser = useCallback((user: UserProfile | null) => {
-    setState((prev) => {
-      if (!user) return { ...prev, user: null };
-      const now = new Date().toISOString();
-      return {
-        ...prev,
-        user: {
-          email: user.email,
-          timezone: user.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-          createdAt: user.createdAt || prev.user?.createdAt || now,
-          tier: user.tier || prev.user?.tier || "free",
-        },
-      };
-    });
+    setState((prev) => ({ ...prev, user }));
   }, []);
 
-  const reconcileEvents = useCallback(
-    (schedule: Schedule, timezone: string, existingEvents: ReminderEvent[]) => {
-      const todayKey = formatDateKey(new Date(), timezone);
-      const existingMap = new Map(existingEvents.map((ev) => [`${ev.date}-${ev.time}`, ev] as const));
-      const upcoming = generateReminderEventsForSchedule(schedule, timezone, 7);
-      const mergedUpcoming = upcoming.map((ev) => {
-        const existing = existingMap.get(`${ev.date}-${ev.time}`);
-        if (!existing) return ev;
-        return {
-          ...ev,
-          id: existing.id,
-          status: existing.status,
-          createdAt: existing.createdAt || ev.createdAt,
-          updatedAt: existing.updatedAt,
-          scheduledAt: existing.scheduledAt || ev.scheduledAt,
-          localTimeLabel: existing.localTimeLabel || ev.localTimeLabel,
-        };
-      });
+  const setTier = useCallback(async (tier: AppTier) => {
+    if (!state.user) return;
+    const updatedUser = await apiUpdateUser(state.user.id, { tier });
+    setState((prev) => ({ ...prev, user: updatedUser, tier }));
+  }, [state.user]);
 
-      const pastEvents = existingEvents
-        .filter((ev) => ev.date && ev.date < todayKey)
-        .map((ev) => ({ ...ev, scheduleName: schedule.name, timezone }));
+  const setSchedule = useCallback(async (schedule: Schedule | null) => {
+    if (!state.user) return;
+    if (schedule) {
+      const newSchedule = await apiSaveSchedule(state.user.id, schedule as any);
+      const newEvents = await apiFetchReminderEvents(state.user.id);
+      setState((prev) => ({ ...prev, schedule: newSchedule, reminderEvents: newEvents }));
+    } else {
+      setState((prev) => ({ ...prev, schedule: null, reminderEvents: [] }));
+    }
+  }, [state.user]);
 
-      return [...pastEvents, ...mergedUpcoming];
-    },
-    []
-  );
+  const updateSchedule = useCallback(async (partial: Partial<Schedule>) => {
+    if (!state.user || !state.schedule) return;
+    const updatedSchedule = await apiUpdateSchedule(state.user.id, state.schedule.id, partial);
+    const newEvents = await apiFetchReminderEvents(state.user.id);
+    setState((prev) => ({ ...prev, schedule: updatedSchedule, reminderEvents: newEvents }));
+  }, [state.user, state.schedule]);
 
-  const setSchedule = useCallback(
-    (schedule: Schedule | null) => {
-      setState((prev) => {
-        if (!schedule) {
-          return { ...prev, schedule: null, reminderEvents: [] };
-        }
-        const nowIso = new Date().toISOString();
-        const enriched: Schedule = {
-          ...schedule,
-          id: schedule.id || prev.schedule?.id || createId("schedule"),
-          createdAt: schedule.createdAt || prev.schedule?.createdAt || nowIso,
-          updatedAt: nowIso,
-        };
-        const tz = prev.user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const reminderEvents = reconcileEvents(enriched, tz, prev.reminderEvents);
-        return { ...prev, schedule: enriched, reminderEvents };
-      });
-    },
-    [reconcileEvents]
-  );
-
-  const updateSchedule = useCallback(
-    (partial: Partial<Schedule>) => {
-      setState((prev) => {
-        if (!prev.schedule) return prev;
-        const nowIso = new Date().toISOString();
-        const mergedSchedule: Schedule = {
-          ...prev.schedule,
-          ...partial,
-          id: prev.schedule.id || createId("schedule"),
-          createdAt: prev.schedule.createdAt || nowIso,
-          updatedAt: nowIso,
-        };
-        const tz = prev.user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const reminderEvents = reconcileEvents(mergedSchedule, tz, prev.reminderEvents);
-        return { ...prev, schedule: mergedSchedule, reminderEvents };
-      });
-    },
-    [reconcileEvents]
-  );
-
-  const setTier = useCallback((tier: AppTier) => {
-    setState((prev) => {
-      const now = new Date().toISOString();
-      if (!prev.user) {
-        return {
-          ...prev,
-          user: {
-            email: "",
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            createdAt: now,
-            tier,
-          },
-        };
-      }
-      return { ...prev, user: { ...prev.user, tier } };
-    });
-  }, []);
-
-  const logReminderAction = useCallback((eventId: string, status: "drank" | "skipped") => {
-    setState((prev) => {
-      const updatedEvents = prev.reminderEvents.map((event) =>
-        event.id === eventId ? { ...event, status, updatedAt: new Date().toISOString() } : event
-      );
-      return { ...prev, reminderEvents: updatedEvents };
-    });
-  }, []);
+  const logReminderAction = useCallback(async (eventId: string, status: 'drank' | 'skipped') => {
+    if (!state.user) return;
+    const updatedEvent = await apiLogReminderAction(state.user.id, eventId, status);
+    setState((prev) => ({
+      ...prev,
+      reminderEvents: prev.reminderEvents.map((e) => (e.id === eventId ? updatedEvent : e)),
+    }));
+  }, [state.user]);
 
   const clearHistory = useCallback(() => {
     setState((prev) => ({ ...prev, reminderEvents: [] }));
   }, []);
 
   const clearAll = useCallback(() => {
-    setState(defaultState);
+    setState({ ...defaultState, isLoading: false });
   }, []);
 
-  const value = useMemo(
-    () => ({
-      state,
-      setUser,
-      setSchedule,
-      updateSchedule,
-      setTier,
-      logReminderAction,
-      clearHistory,
-      clearAll,
-    }),
-    [state, setUser, setSchedule, updateSchedule, setTier, logReminderAction, clearHistory, clearAll]
-  );
+  useEffect(() => {
+    setState((prev) => ({ ...prev, isLoading: false }));
+  }, []);
+
+  const value = {
+    state,
+    login,
+    logout,
+    setUser,
+    setTier,
+    setSchedule,
+    updateSchedule,
+    logReminderAction,
+    clearHistory,
+    clearAll,
+  };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
-}
+};
 
-export function useAppState() {
-  const ctx = useContext(AppStateContext);
-  if (!ctx) {
-    throw new Error("useAppState must be used within AppStateProvider");
+export const useAppState = () => {
+  const context = useContext(AppStateContext);
+  if (context === undefined) {
+    throw new Error('useAppState must be used within an AppStateProvider');
   }
-  return ctx;
-}
+  return context;
+};
 
-export { AppStateContext };
+

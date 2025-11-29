@@ -1,185 +1,120 @@
-import {
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-  Link,
-} from "react-router-dom";
-import { AppStateProvider, useAppState } from "./state/AppStateContext";
-import Landing from "./routes/Landing";
-import Auth from "./routes/Auth";
-import OnboardingTimezone from "./routes/OnboardingTimezone";
-import CreateSchedule from "./routes/CreateSchedule";
-import Dashboard from "./routes/Dashboard";
-import Settings from "./routes/Settings";
-import Plans from "./routes/Plans";
-import History from "./routes/History";
+import React from 'react';
+import { Routes, Route, Link, useLocation, Navigate, Outlet } from 'react-router-dom';
+import { useAppState } from './state/AppStateContext';
+import Landing from './routes/Landing';
+import Auth from './routes/Auth';
+import OnboardingTimezone from './routes/OnboardingTimezone';
+import CreateSchedule from './routes/CreateSchedule';
+import Dashboard from './routes/Dashboard';
+import Settings from './routes/Settings';
+import Plans from './routes/Plans';
+import History from './routes/History';
 
-function AppShell({ children }: { children: React.ReactNode }) {
+function AppLayout() {
+  const { logout } = useAppState(); // Get logout
+  
   return (
-    <div className="relative min-h-screen text-hhp-ink">
-      <div className="hhp-backdrop" aria-hidden />
-      <div className="page-shell relative z-10">{children}</div>
+    <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+      <header className="flex items-center justify-between py-6">
+        <Link to="/dashboard" className="text-xl font-bold text-hhp-ink">
+          Hydration Habit Ping
+        </Link>
+        <nav className="flex items-center space-x-4 text-sm font-medium">
+          <Link
+            to="/history"
+            className="rounded-md px-3 py-2 text-hhp-ink/70 hover:text-hhp-ink focus:outline-none focus:ring-2 focus:ring-hhp-primary"
+          >
+            History
+          </Link>
+          <Link
+            to="/settings"
+            className="rounded-md px-3 py-2 text-hhp-ink/70 hover:text-hhp-ink focus:outline-none focus:ring-2 focus:ring-hhp-primary"
+          >
+            Settings
+          </Link>
+          <Link
+            to="/plans"
+            className="rounded-md px-3 py-2 text-hhp-ink/70 hover:text-hhp-ink focus:outline-none focus:ring-2 focus:ring-hhp-primary"
+          >
+            Plans
+          </Link>
+          <button
+            onClick={logout}
+            className="rounded-md px-3 py-2 text-hhp-ink/70 hover:text-hhp-ink focus:outline-none focus:ring-2 focus:ring-hhp-primary"
+          >
+            Log out
+          </button>
+        </nav>
+      </header>
+      <main>
+        <Outlet />
+      </main>
     </div>
   );
 }
 
-function AppLayout({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { clearAll } = useAppState();
-  const hideNav = ["/", "/auth", "/onboarding/timezone"].includes(
-    location.pathname
-  );
-
-  return (
-    <AppShell>
-      {!hideNav && (
-        <nav className="mb-8 fade-in-up">
-          <div className="flex items-center justify-between rounded-full border border-white/50 bg-white/70 px-5 py-3 shadow-soft backdrop-blur">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <DropletLogo />
-              <span className="text-sm font-semibold tracking-tight text-hhp-ink">
-                Hydration Habit Ping
-              </span>
-            </Link>
-            <div className="flex items-center gap-4 text-sm text-hhp-inkMuted">
-              <Link
-                className="transition-colors hover:text-hhp-ink"
-                to="/settings"
-              >
-                Settings
-              </Link>
-              <Link
-                className="transition-colors hover:text-hhp-ink"
-                to="/plans"
-              >
-                Upgrade
-              </Link>
-              <button
-                className="font-medium text-red-600 transition-colors hover:text-red-700"
-                onClick={() => {
-                  clearAll();
-                  navigate("/");
-                }}
-              >
-                Log out
-              </button>
-            </div>
-          </div>
-        </nav>
-      )}
-      {children}
-    </AppShell>
-  );
-}
-
-function DropletLogo() {
-  return (
-    <span
-      aria-hidden
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-card"
-    >
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="text-hhp-primary"
-      >
-        <path
-          d="M12.82 3.56a1 1 0 0 0-1.64 0C8.69 7 6 10.24 6 13.27 6 17.14 8.74 20 12 20s6-2.86 6-6.73c0-3.03-2.69-6.27-5.18-9.71Z"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="url(#grad)"
-          fillOpacity="0.35"
-        />
-        <path
-          d="M9.5 13.5 11 15l3.5-3.5"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <defs>
-          <linearGradient id="grad" x1="6" y1="4" x2="18" y2="18" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#0fa3c8" stopOpacity="0.7" />
-            <stop offset="1" stopColor="#37c2df" stopOpacity="0.2" />
-          </linearGradient>
-        </defs>
-      </svg>
-    </span>
-  );
-}
-
-function AppRoutes() {
-  return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/onboarding/timezone" element={<OnboardingTimezone />} />
-      <Route
-        path="/schedule/create"
-        element={
-          <RequireProfile>
-            <CreateSchedule />
-          </RequireProfile>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <RequireProfile>
-            <Dashboard />
-          </RequireProfile>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <RequireProfile>
-            <Settings />
-          </RequireProfile>
-        }
-      />
-      <Route
-        path="/plans"
-        element={
-          <RequireProfile>
-            <Plans />
-          </RequireProfile>
-        }
-      />
-      <Route
-        path="/history"
-        element={
-          <RequireProfile>
-            <History />
-          </RequireProfile>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
-
-function RequireProfile({ children }: { children: React.ReactNode }) {
+function RequireProfile({ children }: { children: React.ReactElement }) {
   const { state } = useAppState();
-  if (!state.user) return <Navigate to="/auth" replace />;
-  return <>{children}</>;
+  const location = useLocation();
+
+  if (state.isLoading) {
+    // Show a loading screen while we check for a user
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-xl font-medium text-hhp-ink/70">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!state.user) {
+    // Redirect them to the /auth page, but save the current location
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return children;
 }
 
 function App() {
   return (
-    <AppStateProvider>
-      <AppLayout>
-        <AppRoutes />
-      </AppLayout>
-    </AppStateProvider>
+    <div className="app-shell min-h-screen">
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/auth" element={<Auth />} />
+
+        {/* Protected Routes */}
+        <Route
+          element={
+            <RequireProfile>
+              <AppLayout />
+            </RequireProfile>
+          }
+        >
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/plans" element={<Plans />} />
+          <Route path="/history" element={<History />} />
+        </Route>
+        
+        {/* Onboarding has its own layout */}
+         <Route
+          path="/onboarding/timezone"
+          element={
+            <RequireProfile>
+              <OnboardingTimezone />
+            </RequireProfile>
+          }
+        />
+         <Route
+          path="/schedule/create"
+          element={
+            <RequireProfile>
+              <CreateSchedule />
+            </RequireProfile>
+          }
+        />
+      </Routes>
+    </div>
   );
 }
 

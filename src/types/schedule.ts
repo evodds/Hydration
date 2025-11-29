@@ -23,21 +23,23 @@ export interface Schedule {
 export interface ReminderEvent {
   id: string;
   scheduleId: string;
-  scheduleName: string;
-  timezone: string;
-  date: string; // YYYY-MM-DD in user timezone
-  time: string; // HH:mm
   scheduledAt: string; // ISO timestamp
-  localTimeLabel: string; // e.g. "3:15 PM"
+  date: string;
+  time: string;
   status: "scheduled" | "drank" | "skipped";
-  createdAt: string;
+  createdAt?: string;
   updatedAt?: string;
+  scheduleName?: string;
+  timezone?: string;
+  localTimeLabel?: string;
 }
 
 export interface UserProfile {
+  id: string;
   email: string;
   timezone: string;
   createdAt: string;
+  updatedAt?: string;
   tier: AppTier;
 }
 
@@ -45,4 +47,6 @@ export interface AppState {
   user: UserProfile | null;
   schedule: Schedule | null;
   reminderEvents: ReminderEvent[];
+  isLoading: boolean;
+  tier: AppTier;
 }

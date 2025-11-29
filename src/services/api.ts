@@ -1,82 +1,69 @@
-import type { ReminderEvent, Schedule, UserProfile } from "../types/schedule";
-import { createId } from "../utils/id";
-import { generateReminderEventsForSchedule } from "../utils/time";
+import type { UserProfile, Schedule, ReminderEvent } from '../types/schedule';
 
-// NOTE: This is a lightweight front-end stub. Replace localStorage logic with real fetch("/api/...") calls later.
-const STORAGE_KEY = "hydration-habit-ping-state";
+// Helper for API requests
+async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
 
-type PersistedState = {
-  user: UserProfile | null;
-  schedule: Schedule | null;
-  reminderEvents: ReminderEvent[];
-};
-
-function readLocalState(): PersistedState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { user: null, schedule: null, reminderEvents: [] };
-    return JSON.parse(raw) as PersistedState;
-  } catch {
-    return { user: null, schedule: null, reminderEvents: [] };
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'API request failed' }));
+    throw new Error(errorData.message || 'An unknown error occurred');
   }
+  return response.json() as Promise<T>;
 }
 
-function writeLocalState(next: PersistedState) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // ignore
-  }
+// --- Auth ---
+export async function login(email: string): Promise<UserProfile> {
+  // The backend stub will find-or-create a user by email
+  return apiRequest<UserProfile>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
 
-export async function fakeLogin(email: string): Promise<UserProfile> {
-  const now = new Date().toISOString();
-  const state = readLocalState();
-  const user: UserProfile = state.user || {
-    email,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    createdAt: now,
-    tier: "free",
-  };
-  const updated = { ...state, user };
-  writeLocalState(updated);
-  return user;
+// --- User ---
+export async function updateUser(userId: string, partialUser: Partial<UserProfile>): Promise<UserProfile> {
+  return apiRequest<UserProfile>(`/api/user/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(partialUser),
+  });
 }
 
-export async function fetchUserProfile(): Promise<UserProfile | null> {
-  return readLocalState().user;
+// --- Schedule ---
+export async function fetchSchedule(userId: string): Promise<Schedule | null> {
+  // Our backend stub only supports one schedule per user
+  return apiRequest<Schedule | null>(`/api/user/${userId}/schedule`);
 }
 
-export async function fetchSchedule(): Promise<Schedule | null> {
-  return readLocalState().schedule;
+export async function saveSchedule(userId: string, schedule: Omit<Schedule, 'id' | 'createdAt' | 'updatedAt'>): Promise<Schedule> {
+  return apiRequest<Schedule>(`/api/user/${userId}/schedule`, {
+    method: 'POST',
+    body: JSON.stringify(schedule),
+  });
 }
 
-export async function saveSchedule(schedule: Schedule): Promise<Schedule> {
-  const state = readLocalState();
-  const now = new Date().toISOString();
-  const enriched: Schedule = {
-    ...schedule,
-    id: schedule.id || createId("schedule"),
-    createdAt: schedule.createdAt || now,
-    updatedAt: now,
-  };
-  const tz = state.user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const reminderEvents = generateReminderEventsForSchedule(enriched, tz, 7);
-  const updatedState = { ...state, schedule: enriched, reminderEvents };
-  writeLocalState(updatedState);
-  return enriched;
+export async function updateSchedule(userId: string, scheduleId: string, partialSchedule: Partial<Schedule>): Promise<Schedule> {
+  return apiRequest<Schedule>(`/api/user/${userId}/schedule/${scheduleId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(partialSchedule),
+  });
 }
 
-export async function fetchReminderEvents(): Promise<ReminderEvent[]> {
-  return readLocalState().reminderEvents;
+// --- Events ---
+export async function fetchReminderEvents(userId: string): Promise<ReminderEvent[]> {
+  return apiRequest<ReminderEvent[]>(`/api/user/${userId}/events`);
 }
 
-export async function updateReminderEventStatus(id: string, status: "drank" | "skipped"): Promise<void> {
-  const state = readLocalState();
-  const reminderEvents = state.reminderEvents.map((ev) =>
-    ev.id === id ? { ...ev, status, updatedAt: new Date().toISOString() } : ev
-  );
-  writeLocalState({ ...state, reminderEvents });
+export async function logReminderAction(userId: string, eventId: string, status: 'drank' | 'skipped'): Promise<ReminderEvent> {
+  return apiRequest<ReminderEvent>(`/api/user/${userId}/events/${eventId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
 }
 
-// TODO: Replace these stubs with real HTTP calls to /api once backend is live.
+

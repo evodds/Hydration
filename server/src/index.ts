@@ -15,6 +15,53 @@ const users = new Map<string, BackendUser>();
 const schedules = new Map<string, BackendSchedule>();
 const events = new Map<string, BackendReminderEvent>();
 
+function parseTimeToMinutes(time: string) {
+  const [hRaw, mRaw] = time.split(":").map(Number);
+  if (Number.isNaN(hRaw) || Number.isNaN(mRaw)) return 0;
+  const h = Math.min(Math.max(hRaw, 0), 23);
+  const m = Math.min(Math.max(mRaw, 0), 59);
+  return h * 60 + m;
+}
+
+function formatMinutesToTime(minutes: number) {
+  const normalized = ((minutes % 1440) + 1440) % 1440;
+  const h = Math.floor(normalized / 60);
+  const m = normalized % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+}
+
+function generateEventsForSchedule(schedule: BackendSchedule, userId: string): BackendReminderEvent[] {
+  if (!schedule.isActive || schedule.numPings < 1) return [];
+  const start = parseTimeToMinutes(schedule.startTime);
+  const end = parseTimeToMinutes(schedule.endTime);
+  if (end <= start) return [];
+  const interval = (end - start) / (schedule.numPings + 1);
+  const times: string[] = [];
+  for (let i = 1; i <= schedule.numPings; i += 1) {
+    const raw = start + interval * i;
+    const rounded = Math.round(raw / 5) * 5;
+    times.push(formatMinutesToTime(rounded));
+  }
+  const today = new Date();
+  const dateKey = today.toISOString().slice(0, 10);
+  return times.map((time, idx) => {
+    const [h, m] = time.split(":").map(Number);
+    const scheduledAt = new Date(today);
+    scheduledAt.setHours(h, m, 0, 0);
+    return {
+      id: randomUUID(),
+      userId,
+      scheduleId: schedule.id,
+      date: dateKey,
+      time,
+      scheduledAt: scheduledAt.toISOString(),
+      status: "scheduled" as BackendReminderStatus,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  });
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -56,13 +103,16 @@ app.patch("/api/user/:id", (req, res) => {
   res.json(updated);
 });
 
-app.get("/api/user/:userId/schedules", (req, res) => {
-  const list = Array.from(schedules.values()).filter((s) => s.userId === req.params.userId);
-  res.json(list);
+// Single schedule per user endpoints
+app.get("/api/user/:userId/schedule", (req, res) => {
+  const schedule = Array.from(schedules.values()).find((s) => s.userId === req.params.userId) || null;
+  res.json(schedule);
 });
 
-app.post("/api/user/:userId/schedules", (req, res) => {
+app.post("/api/user/:userId/schedule", (req, res) => {
   const now = new Date().toISOString();
+  const existing = Array.from(schedules.values()).find((s) => s.userId === req.params.userId);
+  if (existing) schedules.delete(existing.id);
   const schedule: BackendSchedule = {
     ...req.body,
     id: randomUUID(),
@@ -71,10 +121,13 @@ app.post("/api/user/:userId/schedules", (req, res) => {
     updatedAt: now,
   };
   schedules.set(schedule.id, schedule);
+  // regenerate events
+  const newEvents = generateEventsForSchedule(schedule, req.params.userId);
+  newEvents.forEach((ev) => events.set(ev.id, ev));
   res.status(201).json(schedule);
 });
 
-app.put("/api/user/:userId/schedules/:scheduleId", (req, res) => {
+app.patch("/api/user/:userId/schedule/:scheduleId", (req, res) => {
   const existing = schedules.get(req.params.scheduleId);
   if (!existing) return res.status(404).json({ error: "not found" });
   const updated: BackendSchedule = {
@@ -83,12 +136,13 @@ app.put("/api/user/:userId/schedules/:scheduleId", (req, res) => {
     updatedAt: new Date().toISOString(),
   };
   schedules.set(updated.id, updated);
+  // regenerate events
+  Array.from(events.values())
+    .filter((ev) => ev.scheduleId === updated.id)
+    .forEach((ev) => events.delete(ev.id));
+  const newEvents = generateEventsForSchedule(updated, req.params.userId);
+  newEvents.forEach((ev) => events.set(ev.id, ev));
   res.json(updated);
-});
-
-app.delete("/api/user/:userId/schedules/:scheduleId", (req, res) => {
-  schedules.delete(req.params.scheduleId);
-  res.status(204).send();
 });
 
 app.get("/api/user/:userId/events", (req, res) => {
@@ -112,13 +166,8 @@ app.patch("/api/user/:userId/events/:eventId", (req, res) => {
   res.json(updated);
 });
 
-// Placeholder for generating future events (replace with real scheduler logic)
-app.post("/api/user/:userId/events/generate", (_req, res) => {
-  // TODO: Implement generation using schedule rules
-  res.json({ message: "Generation stubbed" });
-});
+const PORT = process.env.PORT || 3001;
 
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log(`Hydration Habit Ping API running on http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`?? Server is running on http://localhost:${PORT}`);
 });
