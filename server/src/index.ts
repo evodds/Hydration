@@ -1,19 +1,29 @@
 import express from "express";
+import cors from "cors";
 import { randomUUID } from "crypto";
-import {
+import type {
   BackendReminderEvent,
   BackendSchedule,
   BackendUser,
   BackendReminderStatus,
 } from "./types";
+import billingRoutes from "./billing.routes";
 
 const app = express();
-app.use(express.json());
+app.use(cors());
 
-// In-memory stores (replace with real DB later)
-const users = new Map<string, BackendUser>();
-const schedules = new Map<string, BackendSchedule>();
-const events = new Map<string, BackendReminderEvent>();
+// --- In-memory database (replace with real DB later) ---
+interface Database {
+  users: BackendUser[];
+  schedules: BackendSchedule[];
+  events: BackendReminderEvent[];
+}
+
+export const db: Database = {
+  users: [],
+  schedules: [],
+  events: [],
+};
 
 function parseTimeToMinutes(time: string) {
   const [hRaw, mRaw] = time.split(":").map(Number);
@@ -44,7 +54,7 @@ function generateEventsForSchedule(schedule: BackendSchedule, userId: string): B
   }
   const today = new Date();
   const dateKey = today.toISOString().slice(0, 10);
-  return times.map((time, idx) => {
+  return times.map((time) => {
     const [h, m] = time.split(":").map(Number);
     const scheduledAt = new Date(today);
     scheduledAt.setHours(h, m, 0, 0);
@@ -62,6 +72,15 @@ function generateEventsForSchedule(schedule: BackendSchedule, userId: string): B
   });
 }
 
+// --- Middleware ---
+app.use(
+  "/api/billing/webhook",
+  express.raw({ type: "application/json" })
+);
+app.use(express.json());
+
+app.use("/api/billing", billingRoutes);
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -69,7 +88,7 @@ app.get("/api/health", (_req, res) => {
 app.post("/api/auth/login", (req, res) => {
   const email = (req.body?.email as string | undefined)?.toLowerCase().trim();
   if (!email) return res.status(400).json({ error: "email required" });
-  let user = Array.from(users.values()).find((u) => u.email === email);
+  let user = db.users.find((u) => u.email === email);
   if (!user) {
     const now = new Date().toISOString();
     user = {
@@ -80,39 +99,38 @@ app.post("/api/auth/login", (req, res) => {
       createdAt: now,
       updatedAt: now,
     };
-    users.set(user.id, user);
+    db.users.push(user);
   }
   res.json(user);
 });
 
 app.get("/api/user/:id", (req, res) => {
-  const user = users.get(req.params.id);
+  const user = db.users.find((u) => u.id === req.params.id);
   if (!user) return res.status(404).json({ error: "not found" });
   res.json(user);
 });
 
 app.patch("/api/user/:id", (req, res) => {
-  const user = users.get(req.params.id);
-  if (!user) return res.status(404).json({ error: "not found" });
+  const idx = db.users.findIndex((u) => u.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "not found" });
   const updated: BackendUser = {
-    ...user,
+    ...db.users[idx],
     ...req.body,
     updatedAt: new Date().toISOString(),
   };
-  users.set(updated.id, updated);
+  db.users[idx] = updated;
   res.json(updated);
 });
 
 // Single schedule per user endpoints
 app.get("/api/user/:userId/schedule", (req, res) => {
-  const schedule = Array.from(schedules.values()).find((s) => s.userId === req.params.userId) || null;
+  const schedule = db.schedules.find((s) => s.userId === req.params.userId) || null;
   res.json(schedule);
 });
 
 app.post("/api/user/:userId/schedule", (req, res) => {
   const now = new Date().toISOString();
-  const existing = Array.from(schedules.values()).find((s) => s.userId === req.params.userId);
-  if (existing) schedules.delete(existing.id);
+  db.schedules = db.schedules.filter((s) => s.userId !== req.params.userId);
   const schedule: BackendSchedule = {
     ...req.body,
     id: randomUUID(),
@@ -120,54 +138,50 @@ app.post("/api/user/:userId/schedule", (req, res) => {
     createdAt: now,
     updatedAt: now,
   };
-  schedules.set(schedule.id, schedule);
-  // regenerate events
+  db.schedules.push(schedule);
+  db.events = db.events.filter((ev) => ev.userId !== req.params.userId);
   const newEvents = generateEventsForSchedule(schedule, req.params.userId);
-  newEvents.forEach((ev) => events.set(ev.id, ev));
+  db.events.push(...newEvents);
   res.status(201).json(schedule);
 });
 
 app.patch("/api/user/:userId/schedule/:scheduleId", (req, res) => {
-  const existing = schedules.get(req.params.scheduleId);
-  if (!existing) return res.status(404).json({ error: "not found" });
+  const idx = db.schedules.findIndex((s) => s.id === req.params.scheduleId);
+  if (idx === -1) return res.status(404).json({ error: "not found" });
   const updated: BackendSchedule = {
-    ...existing,
+    ...db.schedules[idx],
     ...req.body,
     updatedAt: new Date().toISOString(),
   };
-  schedules.set(updated.id, updated);
-  // regenerate events
-  Array.from(events.values())
-    .filter((ev) => ev.scheduleId === updated.id)
-    .forEach((ev) => events.delete(ev.id));
+  db.schedules[idx] = updated;
+  db.events = db.events.filter((ev) => ev.scheduleId !== updated.id);
   const newEvents = generateEventsForSchedule(updated, req.params.userId);
-  newEvents.forEach((ev) => events.set(ev.id, ev));
+  db.events.push(...newEvents);
   res.json(updated);
 });
 
 app.get("/api/user/:userId/events", (req, res) => {
-  const list = Array.from(events.values()).filter((e) => e.userId === req.params.userId);
+  const list = db.events.filter((e) => e.userId === req.params.userId);
   res.json(list);
 });
 
 app.patch("/api/user/:userId/events/:eventId", (req, res) => {
-  const ev = events.get(req.params.eventId);
-  if (!ev) return res.status(404).json({ error: "not found" });
+  const idx = db.events.findIndex((ev) => ev.id === req.params.eventId);
+  if (idx === -1) return res.status(404).json({ error: "not found" });
   const status = req.body?.status as BackendReminderStatus | undefined;
   if (!status || !["scheduled", "drank", "skipped"].includes(status)) {
     return res.status(400).json({ error: "invalid status" });
   }
-  const updated: BackendReminderEvent = {
-    ...ev,
+  db.events[idx] = {
+    ...db.events[idx],
     status,
     updatedAt: new Date().toISOString(),
   };
-  events.set(updated.id, updated);
-  res.json(updated);
+  res.json(db.events[idx]);
 });
 
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
-  console.log(`?? Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
