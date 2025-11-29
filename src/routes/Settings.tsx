@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAppState } from "../state/AppStateContext";
 
 const timezones = [
@@ -23,6 +23,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailDraft, setEmailDraft] = useState(state.user?.email || "");
+  const isPro = state.user?.tier === "pro";
 
   const user = state.user;
 
@@ -163,6 +164,66 @@ export default function Settings() {
                 <span
                   className={`h-5 w-5 rounded-full bg-white shadow-sm transition ${
                     state.schedule?.isActive ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={`rounded-2xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur ${!isPro ? "opacity-60" : ""}`}>
+        <div className="relative">
+          {!isPro && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/50 backdrop-blur-[2px]">
+              <Link
+                to="/plans"
+                className="rounded-xl bg-hhp-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-hhp-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hhp-primary focus-visible:ring-offset-2"
+              >
+                Upgrade to Pro to Use SMS
+              </Link>
+            </div>
+          )}
+          <h3 className="text-lg font-semibold text-slate-900">
+            Notifications{" "}
+            {!isPro && (
+              <span className="ml-2 rounded-full bg-hhp-accent px-2 py-0.5 text-[11px] font-semibold text-white">
+                PRO
+              </span>
+            )}
+          </h3>
+          <p className="mt-2 text-sm text-slate-600">Get reminders sent directly to your phone.</p>
+
+          <div className="mt-6 space-y-4 text-sm">
+            <div>
+              <label htmlFor="phone" className="text-sm font-medium text-slate-900">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                disabled={!isPro}
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-hhp-primary focus:outline-none focus:ring-2 focus:ring-hhp-primary/30 disabled:opacity-50"
+                placeholder="+1 (555) 123-4567"
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium text-slate-900">Enable SMS reminders</div>
+                <p className="text-xs text-slate-500">Send hydration nudges directly via text.</p>
+              </div>
+              <button
+                type="button"
+                disabled={!isPro}
+                role="switch"
+                aria-checked={isPro}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-hhp-primary focus:ring-offset-2 disabled:opacity-50 ${
+                  isPro ? "bg-hhp-primary" : "bg-gray-200"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    isPro ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>

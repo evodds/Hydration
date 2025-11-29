@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAppState } from "../state/AppStateContext";
 import { type DayOfWeek, type QuietPeriod, type Schedule } from "../types/schedule";
 import { generatePingTimes } from "../utils/time";
@@ -108,6 +108,27 @@ export default function CreateSchedule() {
       navigate("/");
     }
   };
+
+  // --- FEATURE GATE ---
+  if (state.user?.tier === "free" && state.schedule) {
+    return (
+      <div className="rounded-2xl bg-white/60 p-8 text-center shadow-soft">
+        <h2 className="text-2xl font-bold text-hhp-ink">Upgrade to Pro</h2>
+        <p className="mt-4 text-hhp-ink/70">
+          The free plan supports one schedule. You've already created yours!
+        </p>
+        <p className="mt-2 text-hhp-ink/70">
+          Upgrade to Pro to create multiple schedules (e.g., for work, weekends, or the gym).
+        </p>
+        <Link
+          to="/plans"
+          className="mt-6 inline-block rounded-xl bg-hhp-primary px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-hhp-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hhp-primary focus-visible:ring-offset-2"
+        >
+          View Pro Plans
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

@@ -66,4 +66,12 @@ export async function logReminderAction(userId: string, eventId: string, status:
   });
 }
 
+// --- Billing ---
+export async function createCheckoutSession(userId: string, priceId: string): Promise<{ url: string }> {
+  return apiRequest<{ url: string }>('/api/billing/create-checkout-session', {
+    method: 'POST',
+    body: JSON.stringify({ userId, priceId }),
+  });
+}
+
 
