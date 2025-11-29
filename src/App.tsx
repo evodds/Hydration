@@ -18,7 +18,7 @@ import History from "./routes/History";
 
 function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen text-primary">
+    <div className="relative min-h-screen text-hhp-ink">
       <div className="hhp-backdrop" aria-hidden />
       <div className="page-shell relative z-10">{children}</div>
     </div>
@@ -36,29 +36,29 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppShell>
       {!hideNav && (
-        <nav className="mb-8">
-          <div className="flex items-center justify-between rounded-full border border-white/50 bg-white/70 px-5 py-3 shadow-card backdrop-blur">
+        <nav className="mb-8 fade-in-up">
+          <div className="flex items-center justify-between rounded-full border border-white/50 bg-white/70 px-5 py-3 shadow-soft backdrop-blur">
             <Link to="/dashboard" className="flex items-center gap-2">
               <DropletLogo />
-              <span className="text-sm font-semibold tracking-tight text-slate-900">
+              <span className="text-sm font-semibold tracking-tight text-hhp-ink">
                 Hydration Habit Ping
               </span>
             </Link>
-            <div className="flex items-center gap-4 text-sm text-slate-100">
+            <div className="flex items-center gap-4 text-sm text-hhp-inkMuted">
               <Link
-                className="text-slate-100 transition-colors hover:text-white"
+                className="transition-colors hover:text-hhp-ink"
                 to="/settings"
               >
                 Settings
               </Link>
               <Link
-                className="text-slate-100 transition-colors hover:text-white"
+                className="transition-colors hover:text-hhp-ink"
                 to="/plans"
               >
                 Upgrade
               </Link>
               <button
-                className="font-medium text-red-100 transition-colors hover:text-red-200"
+                className="font-medium text-red-600 transition-colors hover:text-red-700"
                 onClick={() => {
                   clearAll();
                   navigate("/");
@@ -87,7 +87,7 @@ function DropletLogo() {
         viewBox="0 0 24 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="text-brand-primary"
+        className="text-hhp-primary"
       >
         <path
           d="M12.82 3.56a1 1 0 0 0-1.64 0C8.69 7 6 10.24 6 13.27 6 17.14 8.74 20 12 20s6-2.86 6-6.73c0-3.03-2.69-6.27-5.18-9.71Z"

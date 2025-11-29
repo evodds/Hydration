@@ -17,34 +17,32 @@ export interface Schedule {
   quietPeriods: QuietPeriod[];
   isActive: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface ReminderEvent {
   id: string;
   scheduleId: string;
-  scheduledAt: string; // ISO string
-  localTimeLabel: string; // e.g. "11:00 AM"
-  status: "scheduled" | "sent" | "drank" | "skipped";
-}
-
-export interface ReminderLogEntry {
-  id: string;
-  reminderEventId: string;
-  occurredAt: string; // ISO string
-  response: "drank" | "skipped";
+  scheduleName: string;
+  timezone: string;
+  date: string; // YYYY-MM-DD in user timezone
+  time: string; // HH:mm
+  scheduledAt: string; // ISO timestamp
+  localTimeLabel: string; // e.g. "3:15 PM"
+  status: "scheduled" | "drank" | "skipped";
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface UserProfile {
   email: string;
   timezone: string;
   createdAt: string;
+  tier: AppTier;
 }
 
 export interface AppState {
   user: UserProfile | null;
   schedule: Schedule | null;
-  tier: AppTier;
   reminderEvents: ReminderEvent[];
-  history: ReminderLogEntry[];
 }

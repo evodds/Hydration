@@ -64,7 +64,7 @@ export default function Settings() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/40 bg-white/70 p-6 shadow-card backdrop-blur">
+        <div className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur">
           <h2 className="text-lg font-semibold text-slate-900">Account</h2>
           <div className="mt-4 divide-y divide-slate-100 text-sm">
             <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -72,7 +72,7 @@ export default function Settings() {
                 <div className="text-sm font-medium text-slate-900">Email</div>
                 {editingEmail ? (
                   <input
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-hhp-primary focus:outline-none focus:ring-2 focus:ring-hhp-primary/30"
                     value={emailDraft}
                     onChange={(e) => setEmailDraft(e.target.value)}
                   />
@@ -83,7 +83,7 @@ export default function Settings() {
               {editingEmail ? (
                 <div className="flex gap-2">
                   <button
-                    className="rounded-full bg-brand-primary px-4 py-2 text-xs font-semibold text-white shadow-soft transition hover:bg-cyan-600"
+                    className="rounded-full bg-hhp-primary px-4 py-2 text-xs font-semibold text-white shadow-soft transition hover:bg-cyan-600"
                     onClick={handleEmailSave}
                   >
                     Save
@@ -124,13 +124,13 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/40 bg-white/70 p-6 shadow-card backdrop-blur">
+        <div className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur">
           <h2 className="text-lg font-semibold text-slate-900">Time & reminders</h2>
           <div className="mt-4 space-y-4 text-sm">
             <div className="grid gap-2">
               <label className="text-sm font-medium text-slate-900">Timezone</label>
               <select
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-hhp-primary focus:outline-none focus:ring-2 focus:ring-hhp-primary/30"
                 value={currentTz}
                 onChange={(e) => handleTimezoneChange(e.target.value)}
               >
@@ -151,9 +151,12 @@ export default function Settings() {
               </div>
               <button
                 onClick={handlePauseToggle}
+                role="switch"
+                aria-checked={!(state.schedule?.isActive ?? true)}
+                aria-label="Pause all reminders"
                 className={`flex h-6 w-11 items-center rounded-full border px-0.5 transition ${
                   state.schedule?.isActive
-                    ? "border-brand-primary bg-brand-primary"
+                    ? "border-hhp-primary bg-hhp-primary"
                     : "border-slate-300 bg-slate-200"
                 }`}
               >

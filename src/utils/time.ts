@@ -125,7 +125,7 @@ function formatWeekday(dayIndex: number) {
   return names[dayIndex] ?? "Next";
 }
 
-function dayOfWeekFromDate(date: Date, timezone: string): DayOfWeek {
+export function dayOfWeekFromDate(date: Date, timezone: string): DayOfWeek {
   const name = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     weekday: "short",
@@ -142,14 +142,6 @@ function dayOfWeekFromDate(date: Date, timezone: string): DayOfWeek {
   return map[name] ?? 0;
 }
 
-function formatTimeLabel(date: Date, timezone: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
 export function generateReminderEventsForSchedule(
   schedule: Schedule,
   timezone: string,
@@ -163,13 +155,16 @@ export function generateReminderEventsForSchedule(
   const events: ReminderEvent[] = [];
   const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const now = new Date();
+  const todayKey = formatDateKey(now, tz);
 
   for (let offset = 0; offset < safeDays; offset += 1) {
     const day = new Date(now);
-    day.setHours(12, 0, 0, 0); // midday anchor to reduce DST drift
+    day.setHours(12, 0, 0, 0);
     day.setDate(now.getDate() + offset);
     const weekday = dayOfWeekFromDate(day, tz);
     if (!schedule.daysOfWeek.includes(weekday)) continue;
+
+    const dateKey = formatDateKey(day, tz);
 
     baseTimes.forEach((time) => {
       const [h, m] = time.split(":").map(Number);
@@ -178,15 +173,68 @@ export function generateReminderEventsForSchedule(
       events.push({
         id: createId("reminder"),
         scheduleId: schedule.id,
+        scheduleName: schedule.name,
+        timezone: tz,
+        date: dateKey,
+        time,
         scheduledAt: eventDate.toISOString(),
-        localTimeLabel: formatTimeLabel(eventDate, tz),
+        localTimeLabel: formatLocalTimeLabel(eventDate, tz),
         status: "scheduled",
+        createdAt: dateKey === todayKey ? now.toISOString() : eventDate.toISOString(),
       });
     });
   }
 
-  return events.sort(
-    (a, b) =>
-      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
-  );
+  return events.sort((a, b) => {
+    if (a.date === b.date) return parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
+    return a.date.localeCompare(b.date);
+  });
+}
+
+export function formatDateKey(date: Date, timezone: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function formatTimeKey(date: Date, timezone: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .slice(0, 5);
+}
+
+export function getNowInTimezone(timezone: string) {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value || "0";
+  const dateKey = `${get("year")}-${get("month")}-${get("day")}`;
+  const hours = Number(get("hour"));
+  const minutes = Number(get("minute"));
+
+  return { date: now, dateKey, timeKey: `${get("hour")}:${get("minute")}`, minutes: hours * 60 + minutes };
+}
+
+export function formatLocalTimeLabel(date: Date, timezone: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
 }

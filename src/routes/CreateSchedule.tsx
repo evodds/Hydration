@@ -130,7 +130,13 @@ export default function CreateSchedule() {
               {error}
             </div>
           )}
-          <Section title="Days of week" helper="Pick the days you want hydration pings.">
+          <Section title="Name & days" helper="Pick the days you want hydration pings.">
+            <Input
+              label="Schedule name"
+              value={form.name}
+              onChange={(v) => setForm((p) => ({ ...p, name: v }))}
+              placeholder="Workdays"
+            />
             <div className="flex flex-wrap gap-2">
               {(Object.keys(dayLabels) as unknown as DayOfWeek[]).map((day) => {
                 const active = form.daysOfWeek.includes(day);
@@ -141,7 +147,7 @@ export default function CreateSchedule() {
                     onClick={() => toggleDay(day)}
                     className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                       active
-                        ? "border-transparent bg-brand-primary text-white shadow-sm"
+                        ? "border-transparent bg-hhp-primary text-white shadow-sm"
                         : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                     }`}
                   >
@@ -150,6 +156,7 @@ export default function CreateSchedule() {
                 );
               })}
             </div>
+            <p className="text-xs text-slate-500">Tip: Start with weekdays if you’re easing into the habit.</p>
           </Section>
 
           <Section
@@ -221,21 +228,12 @@ export default function CreateSchedule() {
             </div>
           </Section>
 
-          <Section title="Schedule name" helper="Label this schedule so you can find it later.">
-            <Input
-              label="Name"
-              value={form.name}
-              onChange={(v) => setForm((p) => ({ ...p, name: v }))}
-              placeholder="Workdays"
-            />
-          </Section>
-
           <div className="flex flex-wrap gap-3 pt-2">
             <button
               type="submit"
-              className="rounded-full bg-brand-primary px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition duration-150 ease-out hover:bg-cyan-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-full bg-gradient-to-r from-hhp-primary to-cyan-400 px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition duration-150 ease-out hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hhp-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
-              Save schedule
+              Save schedule &amp; view Dashboard
             </button>
             <button
               type="button"
@@ -333,3 +331,8 @@ function Input({
     </label>
   );
 }
+
+
+
+
+
