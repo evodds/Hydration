@@ -114,7 +114,7 @@ export default function Dashboard() {
   const confirmationToneClasses =
     confirmation?.tone === "drank"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border-amber-200 bg-amber-50 text-amber-700";
+      : "border-amber-200 bg-slate-100 text-hhp-inkMuted";
 
   const scheduleActive = schedule?.isActive ?? false;
 
@@ -337,7 +337,7 @@ function PingRow({
     event.status === "drank"
       ? "bg-emerald-50 text-emerald-700"
       : event.status === "skipped"
-      ? "bg-amber-50 text-amber-700"
+      ? "bg-slate-100 text-hhp-inkMuted"
       : "bg-slate-100 text-slate-700";
 
   return (
@@ -395,3 +395,4 @@ function formatEventLabel(event: ReminderEvent, timezone: string, todayKey: stri
   }).format(new Date(`${event.date}T${event.time}:00Z`));
   return `${dayLabel} at ${timeLabel}`;
 }
+
