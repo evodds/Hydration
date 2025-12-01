@@ -6,6 +6,7 @@ export interface BackendUser {
   timezone: string;
   tier: BackendAppTier;
   stripeCustomerId?: string;
+  phone?: string;
   createdAt: string;
   updatedAt: string;
 }

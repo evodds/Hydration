@@ -8,6 +8,7 @@ import type {
   BackendReminderStatus,
 } from "./types";
 import billingRoutes from "./billing.routes";
+import smsRoutes from "./sms.routes";
 
 const app = express();
 app.use(cors());
@@ -80,6 +81,7 @@ app.use(
 app.use(express.json());
 
 app.use("/api/billing", billingRoutes);
+app.use("/api/sms", smsRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
