@@ -45,3 +45,7 @@ export interface AppState {
   reminderEvents: ReminderEvent[];
   isLoading: boolean;
 }
+
+// --- THIS IS THE FIX ---
+// Add a real constant to force Vite to see this file.
+export const CACHE_BUSTER = 'hello';
