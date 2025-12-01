@@ -1,139 +1,136 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAppState } from "../state/AppStateContext";
-
-const timezones = [
-  "Use browser timezone",
-  "America/Los_Angeles",
-  "America/Denver",
-  "America/Chicago",
-  "America/New_York",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Asia/Tokyo",
-  "Asia/Singapore",
-  "Asia/Kolkata",
-  "Australia/Sydney",
-  "UTC",
-];
+import React, { useState, useEffect } from 'react';
+import { useAppState } from '../state/AppStateContext';
+import { timezones } from '../utils/timezones';
+import { Link } from 'react-router-dom';
+import { updateUserPhone, sendTestSms } from '../services/api';
 
 export default function Settings() {
   const { state, setUser, updateSchedule, clearAll } = useAppState();
-  const navigate = useNavigate();
-  const [editingEmail, setEditingEmail] = useState(false);
-  const [emailDraft, setEmailDraft] = useState(state.user?.email || "");
-  const isPro = state.user?.tier === "pro";
+  
+  const [email, setEmail] = useState(state.user?.email || '');
+  const [timezone, setTimezone] = useState(state.user?.timezone || '');
+  const [isPaused, setIsPaused] = useState(state.schedule?.isActive === false);
 
-  const user = state.user;
+  const [phone, setPhone] = useState(state.user?.phone || '');
+  const [smsMessage, setSmsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
-  const currentTz = user?.timezone || "Use browser timezone";
+  useEffect(() => {
+    setPhone(state.user?.phone || '');
+  }, [state.user?.phone]);
+  
+  const isPro = state.user?.tier === 'pro';
 
-  const handleEmailSave = () => {
-    if (!user) return;
-    setUser({ ...user, email: emailDraft });
-    setEditingEmail(false);
+  const handleSaveAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!state.user) return;
+    setUser({ ...state.user, email });
+    alert('Account email updated (locally).');
   };
 
-  const handleTimezoneChange = (value: string) => {
-    if (!user) return;
-    const tz =
-      value === "Use browser timezone"
-        ? Intl.DateTimeFormat().resolvedOptions().timeZone
-        : value;
-    setUser({ ...user, timezone: tz });
+  const handleSaveTimezone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!state.user) return;
+    setUser({ ...state.user, timezone });
+    alert('Timezone updated.');
   };
 
-  const handlePauseToggle = () => {
+  const handleTogglePause = () => {
     if (!state.schedule) return;
-    updateSchedule({ ...state.schedule, isActive: !state.schedule.isActive });
+    const newIsActive = !isPaused;
+    updateSchedule({ isActive: newIsActive });
+    setIsPaused(!newIsActive);
   };
 
-  const handleDeleteAccount = () => {
-    const ok = window.confirm("Delete account data from this device?");
-    if (ok) {
-      clearAll();
-      navigate("/");
+  const handleSavePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!state.user || !isPro) return;
+    
+    setSmsMessage(null);
+    setIsSending(true);
+    
+    let formattedPhone = phone;
+    if (!phone.startsWith('+')) {
+      formattedPhone = `+${phone}`;
     }
+
+    try {
+      const updatedUser = await updateUserPhone(state.user.id, formattedPhone);
+      setUser(updatedUser);
+      setPhone(updatedUser.phone || '');
+      setSmsMessage({ type: 'success', text: 'Phone number saved!' });
+    } catch (err: any) {
+      setSmsMessage({ type: 'error', text: `Failed to save: ${err.message}` });
+    }
+    setIsSending(false);
   };
+
+  const handleSendTest = async () => {
+    if (!state.user || !isPro) return;
+
+    setSmsMessage(null);
+    setIsSending(true);
+    try {
+      const result = await sendTestSms(state.user.id);
+      setSmsMessage({ type: 'success', text: result.message });
+    } catch (err: any) {
+      setSmsMessage({ type: 'error', text: `Failed to send: ${err.message}` });
+    }
+    setIsSending(false);
+  };
+
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Settings</h1>
-        <p className="text-sm text-slate-600">Tweak your account and reminder behavior.</p>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur">
-          <h2 className="text-lg font-semibold text-slate-900">Account</h2>
-          <div className="mt-4 divide-y divide-slate-100 text-sm">
-            <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-medium text-slate-900">Email</div>
-                {editingEmail ? (
-                  <input
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-hhp-primary focus:outline-none focus:ring-2 focus:ring-hhp-primary/30"
-                    value={emailDraft}
-                    onChange={(e) => setEmailDraft(e.target.value)}
-                  />
-                ) : (
-                  <div className="text-sm text-slate-600">{user?.email || "—"}</div>
-                )}
-              </div>
-              {editingEmail ? (
-                <div className="flex gap-2">
-                  <button
-                    className="rounded-full bg-hhp-primary px-4 py-2 text-xs font-semibold text-white shadow-soft transition hover:bg-cyan-600"
-                    onClick={handleEmailSave}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    onClick={() => {
-                      setEditingEmail(false);
-                      setEmailDraft(user?.email || "");
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  onClick={() => setEditingEmail(true)}
-                >
-                  Change
-                </button>
-              )}
-            </div>
-
-            <div className="py-3">
-              <button className="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                Change password
-              </button>
-            </div>
-            <div className="py-3">
-              <button
-                className="w-full rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100"
-                onClick={handleDeleteAccount}
-              >
-                Delete account
-              </button>
+    <div className="space-y-12">
+      <div className="bg-white/60 shadow-soft rounded-2xl">
+        <form onSubmit={handleSaveAccount} className="p-6 sm:p-8">
+          <h3 className="text-xl font-semibold text-hhp-ink">Account</h3>
+          <p className="mt-2 text-sm text-hhp-ink/70">
+            Update your account information.
+          </p>
+          <div className="mt-6">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email address
+            </label>
+            <div className="mt-1">
+              <input
+                type="email"
+                name="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-hhp-primary focus:ring-hhp-primary sm:text-sm"
+              />
             </div>
           </div>
-        </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              className="rounded-xl bg-hhp-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-hhp-primary-dark focus:outline-none focus:ring-2 focus:ring-hhp-primary focus:ring-offset-2"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
 
-        <div className="rounded-2xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur">
-          <h2 className="text-lg font-semibold text-slate-900">Time & reminders</h2>
-          <div className="mt-4 space-y-4 text-sm">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-slate-900">Timezone</label>
+      <div className="bg-white/60 shadow-soft rounded-2xl">
+        <form onSubmit={handleSaveTimezone} className="p-6 sm:p-8">
+          <h3 className="text-xl font-semibold text-hhp-ink">Timezone</h3>
+          <p className="mt-2 text-sm text-hhp-ink/70">
+            Set your local timezone for accurate reminders.
+          </p>
+          <div className="mt-6">
+            <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
+              Timezone
+            </label>
+            <div className="mt-1">
               <select
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 transition focus:border-hhp-primary focus:outline-none focus:ring-2 focus:ring-hhp-primary/30"
-                value={currentTz}
-                onChange={(e) => handleTimezoneChange(e.target.value)}
+                id="timezone"
+                name="timezone"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-hhp-primary focus:ring-hhp-primary sm:text-sm"
               >
                 {timezones.map((tz) => (
                   <option key={tz} value={tz}>
@@ -142,93 +139,124 @@ export default function Settings() {
                 ))}
               </select>
             </div>
-
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-              <div>
-                <div className="text-sm font-medium text-slate-900">Pause all reminders</div>
-                <p className="text-xs text-slate-500">
-                  When paused, no reminders will be sent from any schedule.
-                </p>
-              </div>
-              <button
-                onClick={handlePauseToggle}
-                role="switch"
-                aria-checked={!(state.schedule?.isActive ?? true)}
-                aria-label="Pause all reminders"
-                className={`flex h-6 w-11 items-center rounded-full border px-0.5 transition ${
-                  state.schedule?.isActive
-                    ? "border-hhp-primary bg-hhp-primary"
-                    : "border-slate-300 bg-slate-200"
-                }`}
-              >
-                <span
-                  className={`h-5 w-5 rounded-full bg-white shadow-sm transition ${
-                    state.schedule?.isActive ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
           </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              className="rounded-xl bg-hhp-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-hhp-primary-dark focus:outline-none focus:ring-2 focus:ring-hhp-primary focus:ring-offset-2"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white/60 shadow-soft rounded-2xl p-6 sm:p-8">
+        <h3 className="text-xl font-semibold text-hhp-ink">Reminders</h3>
+        <p className="mt-2 text-sm text-hhp-ink/70">
+          Pause or resume all reminders.
+        </p>
+        <div className="mt-6 flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-700">
+            {isPaused ? 'Reminders are paused' : 'Reminders are active'}
+          </span>
+          <button
+            type="button"
+            onClick={handleTogglePause}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-hhp-primary focus:ring-offset-2 ${
+              !isPaused ? 'bg-hhp-primary' : 'bg-gray-200'
+            }`}
+            role="switch"
+            aria-checked={!isPaused}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                !isPaused ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      <div className={`rounded-2xl border border-white/60 bg-white/80 p-6 shadow-card backdrop-blur ${!isPro ? "opacity-60" : ""}`}>
-        <div className="relative">
+      <div className={`bg-white/60 shadow-soft rounded-2xl ${!isPro ? 'opacity-60' : ''}`}>
+        <form onSubmit={handleSavePhone} className="relative p-6 sm:p-8">
           {!isPro && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/50 backdrop-blur-[2px]">
+            <div className="absolute inset-0 bg-white/30 backdrop-blur-[2px] rounded-2xl z-10 flex items-center justify-center">
               <Link
                 to="/plans"
-                className="rounded-xl bg-hhp-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-hhp-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hhp-primary focus-visible:ring-offset-2"
+                className="rounded-xl bg-hhp-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-hhp-primary-dark"
               >
                 Upgrade to Pro to Use SMS
               </Link>
             </div>
           )}
-          <h3 className="text-lg font-semibold text-slate-900">
-            Notifications{" "}
-            {!isPro && (
-              <span className="ml-2 rounded-full bg-hhp-accent px-2 py-0.5 text-[11px] font-semibold text-white">
-                PRO
-              </span>
-            )}
-          </h3>
-          <p className="mt-2 text-sm text-slate-600">Get reminders sent directly to your phone.</p>
 
-          <div className="mt-6 space-y-4 text-sm">
+          <h3 className="text-xl font-semibold text-hhp-ink">
+            Notifications
+            {!isPro && <span className="ml-2 text-xs font-bold bg-hhp-accent text-white py-0.5 px-2 rounded-full">PRO</span>}
+          </h3>
+          <p className="mt-2 text-sm text-hhp-ink/70">
+            Get reminders sent directly to your phone. (Pro only)
+          </p>
+          
+          <div className="mt-6 space-y-4">
             <div>
-              <label htmlFor="phone" className="text-sm font-medium text-slate-900">
-                Phone Number
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                Phone Number (with country code, e.g., +15551234567)
               </label>
-              <input
-                id="phone"
-                type="tel"
-                disabled={!isPro}
-                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-hhp-primary focus:outline-none focus:ring-2 focus:ring-hhp-primary/30 disabled:opacity-50"
-                placeholder="+1 (555) 123-4567"
-              />
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-              <div>
-                <div className="text-sm font-medium text-slate-900">Enable SMS reminders</div>
-                <p className="text-xs text-slate-500">Send hydration nudges directly via text.</p>
-              </div>
-              <button
-                type="button"
-                disabled={!isPro}
-                role="switch"
-                aria-checked={isPro}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-hhp-primary focus:ring-offset-2 disabled:opacity-50 ${
-                  isPro ? "bg-hhp-primary" : "bg-gray-200"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    isPro ? "translate-x-5" : "translate-x-0"
-                  }`}
+              <div className="mt-1">
+                <input
+                  type="tel"
+                  name="phone"
+                  id="phone"
+                  disabled={!isPro || isSending}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-hhp-primary focus:ring-hhp-primary sm:text-sm disabled:opacity-50"
+                  placeholder="+1 (555) 123-4567"
                 />
-              </button>
+              </div>
             </div>
           </div>
+
+          {smsMessage && (
+            <div className={`mt-4 text-sm font-medium ${smsMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+              {smsMessage.text}
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={handleSendTest}
+              disabled={!isPro || !phone || isSending}
+              className="rounded-xl bg-hhp-accent px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-hhp-accent-dark focus:outline-none focus:ring-2 focus:ring-hhp-accent focus:ring-offset-2 disabled:opacity-50"
+            >
+              {isSending ? 'Sending...' : 'Send Test'}
+            </button>
+            <button
+              type="submit"
+              disabled={!isPro || isSending}
+              className="rounded-xl bg-hhp-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-hhp-primary-dark focus:outline-none focus:ring-2 focus:ring-hhp-primary focus:ring-offset-2 disabled:opacity-50"
+            >
+              {isSending ? 'Saving...' : 'Save Phone'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white/60 shadow-soft rounded-2xl p-6 sm:p-8">
+        <h3 className="text-xl font-semibold text-hhp-ink">Danger Zone</h3>
+        <p className="mt-2 text-sm text-hhp-ink/70">
+          Reset all your application data. This cannot be undone.
+        </p>
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={clearAll}
+            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+          >
+            Clear All Data
+          </button>
         </div>
       </div>
     </div>

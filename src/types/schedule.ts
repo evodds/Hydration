@@ -38,6 +38,7 @@ export interface UserProfile {
   id: string;
   email: string;
   timezone: string;
+  phone?: string;
   createdAt: string;
   updatedAt?: string;
   tier: AppTier;

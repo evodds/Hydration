@@ -74,4 +74,18 @@ export async function createCheckoutSession(userId: string, priceId: string): Pr
   });
 }
 
+// --- SMS (Twilio) ---
+export async function updateUserPhone(userId: string, phone: string): Promise<UserProfile> {
+  return apiRequest<UserProfile>(`/api/sms/user/${userId}/phone`, {
+    method: 'PATCH',
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export async function sendTestSms(userId: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest<{ success: boolean; message: string }>(`/api/sms/user/${userId}/send-test`, {
+    method: 'POST',
+  });
+}
+
 
