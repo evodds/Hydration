@@ -1,4 +1,5 @@
-﻿import React, { useState } from 'react';
+// --- Forcing a cache refresh ---
+import React, { useState } from 'react';
 import { useAppState } from '../state/AppStateContext';
 import { Link } from 'react-router-dom';
 import { ReminderEvent } from '../types/schedule';
@@ -20,7 +21,7 @@ function StreakCard({ current, longest }: { current: number; longest: number }) 
       </h3>
       <div className="mt-2 flex items-center justify-center gap-2">
         <span className="text-5xl font-bold text-hhp-primary">{current}</span>
-        <span className="text-3xl text-amber-500">🔥</span>
+        <span className="text-3xl text-amber-500">??</span>
       </div>
       <p className="mt-2 text-sm text-hhp-ink/70">
         Longest streak: {longest} days
@@ -149,7 +150,7 @@ function PingRow({ event, timezone, onLogAction }: PingRowProps) {
       <div>
         {event.status === 'drank' && (
           <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
-            Drank 💧
+            Drank ??
           </span>
         )}
         {event.status === 'skipped' && (

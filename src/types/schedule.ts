@@ -31,18 +31,20 @@ export interface Schedule {
   updatedAt?: string;
 }
 
-export interface AppState {
-  user: UserProfile | null;
-  schedule: Schedule | null;
-  reminderEvents: ReminderEvent[];
-  isLoading: boolean;
-}
-
-// --- THIS IS THE MISSING PIECE ---
+// --- THIS IS THE FIX ---
+// Define ReminderEvent *before* it is used in AppState.
 export interface ReminderEvent {
   id: string;
   scheduleId: string;
   pingTime: string; // "HH:mm"
   status: 'drank' | 'skipped' | null;
   dayOfWeek: number; // 0-6
+}
+
+// Now AppState can safely use ReminderEvent
+export interface AppState {
+  user: UserProfile | null;
+  schedule: Schedule | null;
+  reminderEvents: ReminderEvent[];
+  isLoading: boolean;
 }
