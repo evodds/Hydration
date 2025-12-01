@@ -1,4 +1,4 @@
-import type { Schedule, DayOfWeek, ReminderEvent } from "../types/schedule";
+import type { Schedule, DayOfWeek, ReminderEvent } from "../types/app-types";
 import { createId } from "./id";
 
 export function parseTimeToMinutes(time: string): number {

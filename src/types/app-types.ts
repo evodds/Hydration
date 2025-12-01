@@ -31,8 +31,6 @@ export interface Schedule {
   updatedAt?: string;
 }
 
-// --- THIS IS THE FIX ---
-// Define ReminderEvent *before* it is used in AppState.
 export interface ReminderEvent {
   id: string;
   scheduleId: string;
@@ -41,7 +39,6 @@ export interface ReminderEvent {
   dayOfWeek: number; // 0-6
 }
 
-// Now AppState can safely use ReminderEvent
 export interface AppState {
   user: UserProfile | null;
   schedule: Schedule | null;

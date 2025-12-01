@@ -1,4 +1,4 @@
-import type { UserProfile, Schedule, ReminderEvent } from '../types/schedule';
+import type { UserProfile, Schedule, ReminderEvent } from '../types/app-types';
 
 // Helper for API requests
 async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T> {

@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAppState } from "../state/AppStateContext";
-import { type DayOfWeek, type QuietPeriod, type Schedule } from "../types/schedule";
+import { type DayOfWeek, type QuietPeriod, type Schedule } from "../types/app-types";
 import { generatePingTimes } from "../utils/time";
 import { createId } from "../utils/id";
 

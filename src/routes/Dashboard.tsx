@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../state/AppStateContext';
 import { Link } from 'react-router-dom';
-import { ReminderEvent } from '../types/schedule';
+import { ReminderEvent } from '../types/app-types';
 import Confetti from 'react-confetti';
 
 function getPingDate(time: string, timezone: string): Date {

@@ -1,4 +1,4 @@
-import type { ReminderEvent } from "../types/schedule";
+import type { ReminderEvent } from "../types/app-types";
 import { getNowInTimezone, parseTimeToMinutes } from "./time";
 
 export type DailyStat = {
