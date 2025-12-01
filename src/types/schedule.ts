@@ -1,38 +1,4 @@
-export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday
-
-export type AppTier = "free" | "pro";
-
-export interface QuietPeriod {
-  start: string; // "HH:mm"
-  end: string; // "HH:mm"
-}
-
-export interface Schedule {
-  id: string;
-  name: string;
-  daysOfWeek: DayOfWeek[];
-  startTime: string;
-  endTime: string;
-  numPings: number;
-  quietPeriods: QuietPeriod[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface ReminderEvent {
-  id: string;
-  scheduleId: string;
-  scheduledAt: string; // ISO timestamp
-  date: string;
-  time: string;
-  status: "scheduled" | "drank" | "skipped";
-  createdAt?: string;
-  updatedAt?: string;
-  scheduleName?: string;
-  timezone?: string;
-  localTimeLabel?: string;
-}
+export type AppTier = 'free' | 'pro';
 
 export interface UserProfile {
   id: string;
@@ -46,10 +12,37 @@ export interface UserProfile {
   longestStreak: number;
 }
 
+export interface QuietPeriod {
+  start: string; // "HH:mm"
+  end: string; // "HH:mm"
+}
+
+export interface Schedule {
+  id: string;
+  userId: string;
+  name: string;
+  daysOfWeek: number[]; // 0-6
+  startTime: string; // "HH:mm"
+  endTime: string; // "HH:mm"
+  numPings: number;
+  quietPeriods: QuietPeriod[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface AppState {
   user: UserProfile | null;
   schedule: Schedule | null;
   reminderEvents: ReminderEvent[];
   isLoading: boolean;
-  tier: AppTier;
+}
+
+// --- THIS IS THE MISSING PIECE ---
+export interface ReminderEvent {
+  id: string;
+  scheduleId: string;
+  pingTime: string; // "HH:mm"
+  status: 'drank' | 'skipped' | null;
+  dayOfWeek: number; // 0-6
 }
