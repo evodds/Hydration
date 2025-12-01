@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { randomUUID } from "crypto";
@@ -98,6 +99,8 @@ app.post("/api/auth/login", (req, res) => {
       email,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       tier: "free",
+      currentStreak: 0,
+      longestStreak: 0,
       createdAt: now,
       updatedAt: now,
     };
@@ -179,7 +182,20 @@ app.patch("/api/user/:userId/events/:eventId", (req, res) => {
     status,
     updatedAt: new Date().toISOString(),
   };
-  res.json(db.events[idx]);
+  const updatedEvent = db.events[idx];
+
+  // --- STREAK LOGIC STUB ---
+  const { userId } = req.params;
+  const user = db.users.find((u) => u.id === userId);
+  if (user && status === "drank") {
+    user.currentStreak += 1;
+    if (user.currentStreak > user.longestStreak) {
+      user.longestStreak = user.currentStreak;
+    }
+  }
+  // --- END STREAK LOGIC ---
+
+  res.json(updatedEvent);
 });
 
 const PORT = process.env.PORT || 3001;

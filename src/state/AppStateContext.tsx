@@ -101,6 +101,14 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setState((prev) => ({
       ...prev,
       reminderEvents: prev.reminderEvents.map((e) => (e.id === eventId ? updatedEvent : e)),
+      user:
+        status === 'drank' && prev.user
+          ? {
+              ...prev.user,
+              currentStreak: prev.user.currentStreak + 1,
+              longestStreak: Math.max(prev.user.longestStreak, prev.user.currentStreak + 1),
+            }
+          : prev.user,
     }));
   }, [state.user]);
 

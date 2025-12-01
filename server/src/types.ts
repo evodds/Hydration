@@ -7,6 +7,8 @@ export interface BackendUser {
   tier: BackendAppTier;
   stripeCustomerId?: string;
   phone?: string;
+  currentStreak: number;
+  longestStreak: number;
   createdAt: string;
   updatedAt: string;
 }

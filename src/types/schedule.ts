@@ -42,6 +42,8 @@ export interface UserProfile {
   createdAt: string;
   updatedAt?: string;
   tier: AppTier;
+  currentStreak: number;
+  longestStreak: number;
 }
 
 export interface AppState {
