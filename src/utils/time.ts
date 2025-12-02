@@ -1,5 +1,5 @@
-import type { Schedule, DayOfWeek, ReminderEvent } from "@/types/app-types.ts";
-import { createId } from "@/utils/id.ts";
+import type { Schedule, DayOfWeek, ReminderEvent } from '@/types/app-types.ts';
+import { createId } from '@/utils/id.ts';
 
 export function parseTimeToMinutes(time: string): number {
   const [hRaw, mRaw] = time.split(":").map(Number);

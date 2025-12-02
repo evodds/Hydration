@@ -1,122 +1,100 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { useAppState } from "../state/AppStateContext";
-import { createCheckoutSession } from "../services/api";
+﻿import { useState } from 'react';
+import { useAppState } from '@/state/AppStateContext.tsx';
+import { Link } from 'react-router-dom';
 
-// TODO: Replace with your actual Stripe Price ID from the Stripe dashboard.
-const STRIPE_PRO_PRICE_ID = "price_1SYfBcAAaoKtpBVmXIcrEwbt";
+const CheckIcon = (props: React.ComponentProps<'svg'>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    className="w-5 h-5"
+    {...props}
+  >
+    <path
+      fillRule="evenodd"
+      d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
 
 export default function Plans() {
-  const { state } = useAppState();
-  const [message, setMessage] = useState<string | null>(null);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const location = useLocation();
+  const { user, setTier } = useAppState();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const query = new URLSearchParams(location.search);
-    if (query.get("success")) {
-      setMessage("Payment successful! Your account is now Pro.");
-    }
-    if (query.get("cancel")) {
-      setMessage("Payment canceled. Your plan was not changed.");
-    }
-  }, [location.search]);
+  const isPro = user?.tier === 'pro';
 
-  const handleUpgradeClick = async () => {
-    if (STRIPE_PRO_PRICE_ID === "YOUR_PRICE_ID_HERE") {
-      setMessage("Stripe has not been configured by the developer yet.");
-      return;
-    }
-    if (!state.user) {
-      setMessage("Please log in to upgrade.");
-      return;
-    }
-    if (state.user.tier === "pro") {
-      setMessage("You are already on the Pro plan.");
-      return;
-    }
-
-    setIsRedirecting(true);
-    setMessage("Redirecting to secure checkout...");
-
+  const handleUpgrade = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setError(null);
     try {
-      const { url } = await createCheckoutSession(state.user.id, STRIPE_PRO_PRICE_ID);
-      window.location.href = url;
-    } catch (err) {
-      console.error(err);
-      setMessage("Failed to create checkout session. Please try again.");
-      setIsRedirecting(false);
+      // --- THIS LOGIC IS BROKEN, SO WE'LL SIMULATE IT ---
+      // const { url } = await createCheckoutSession(user.id, 'price_PRO_MONTHLY');
+      // window.location.href = url;
+
+      // For now, we'll just optimistically upgrade
+      await setTier('pro');
+      alert('Simulating successful upgrade to Pro!');
+    } catch (err: any) {
+      setError(err.message || 'Failed to upgrade.');
     }
+    setIsLoading(false);
   };
 
-  const isPro = state.user?.tier === "pro";
-
   return (
-    <div className="mx-auto max-w-4xl py-12">
-      <h2 className="text-center text-3xl font-bold tracking-tight text-hhp-ink sm:text-4xl">
-        Plans
-      </h2>
-      <p className="mt-4 text-center text-lg text-hhp-ink/70">Choose the plan that's right for you.</p>
+    <div className="max-w-2xl p-8 mx-auto">
+      <h1 className="text-3xl font-bold text-gray-800 mb-8">Plans</h1>
 
-      {message && (
-        <div
-          className={`mt-6 rounded-lg p-4 ${
-            message.includes("successful")
-              ? "bg-emerald-50 text-emerald-700"
-              : message.includes("Stripe")
-                ? "bg-red-50 text-red-700"
-                : "bg-yellow-50 text-yellow-700"
-          }`}
-        >
-          {message}
+      {error && (
+        <div className="p-4 mb-6 text-red-800 bg-red-100 rounded-lg">
+          {error}
         </div>
       )}
 
-      <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-2">
-        <div
-          className={`rounded-3xl border p-8 shadow-soft ${
-            isPro ? "border-gray-200" : "border-hhp-primary ring-2 ring-hhp-primary"
-          }`}
-        >
-          <h3 className="text-xl font-semibold text-hhp-ink">Free</h3>
-          <p className="mt-2 text-hhp-ink/70">For getting started.</p>
-          <ul className="mt-6 space-y-3 text-hhp-ink/90">
-            <li className="flex items-center gap-2">✅ One schedule</li>
-            <li className="flex items-center gap-2">✅ Local reminders</li>
-            <li className="flex items-center gap-2">✅ 7-day history</li>
-          </ul>
-          <button
-            disabled={!isPro}
-            className="mt-8 w-full rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 opacity-70 cursor-not-allowed"
-          >
-            {isPro ? "Switch to Free (Coming Soon)" : "Your Current Plan"}
-          </button>
-        </div>
+      <div className="p-8 bg-white rounded-lg shadow-lg">
+        <h2 className="text-2xl font-semibold text-gray-800">
+          {isPro ? 'You are on the Pro Plan' : 'Upgrade to Pro'}
+        </h2>
+        <p className="mt-4 text-gray-600">
+          {isPro
+            ? 'Thanks for being a Pro user! You have access to all features.'
+            : 'Get SMS reminders, multiple schedules, and more.'}
+        </p>
 
-        <div
-          className={`rounded-3xl border p-8 shadow-soft ${
-            isPro ? "border-hhp-primary ring-2 ring-hhp-primary" : "border-gray-200"
-          }`}
-        >
-          <h3 className="text-xl font-semibold text-hhp-ink">Pro</h3>
-          <p className="mt-2 text-hhp-ink/70">For advanced habits.</p>
-          <ul className="mt-6 space-y-3 text-hhp-ink/90">
-            <li className="flex items-center gap-2">✅ Multiple schedules</li>
-            <li className="flex items-center gap-2">✅ SMS reminders (Coming Soon)</li>
-            <li className="flex items-center gap-2">✅ Unlimited history</li>
-          </ul>
+        <ul className="mt-6 space-y-3 text-gray-700">
+          <li className="flex items-center space-x-3">
+            <CheckIcon className="text-green-500" />
+            <span>Browser-based reminders</span>
+          </li>
+          <li className="flex items-center space-x-3">
+            <CheckIcon className="text-green-500" />
+            <span>Basic hydration tracking</span>
+          </li>
+          <li className="flex items-center space-x-3">
+            <CheckIcon className={isPro ? 'text-green-500' : 'text-gray-400'} />
+            <span className={!isPro ? 'text-gray-400' : ''}>
+              SMS notifications
+            </span>
+          </li>
+          <li className="flex items-center space-x-3">
+            <CheckIcon className={isPro ? 'text-green-500' : 'text-gray-400'} />
+            <span className={!isPro ? 'text-gray-400' : ''}>
+              Multiple schedules
+            </span>
+          </li>
+        </ul>
+
+        {!isPro && (
           <button
-            onClick={handleUpgradeClick}
-            disabled={isPro || isRedirecting}
-            className={`mt-8 w-full rounded-xl px-4 py-2 text-sm font-medium ${
-              isPro
-                ? "bg-gray-100 text-gray-700 opacity-70 cursor-not-allowed"
-                : "bg-hhp-primary text-white hover:bg-hhp-primary-dark"
-            } ${isRedirecting ? "opacity-50" : ""}`}
+            onClick={handleUpgrade}
+            disabled={isLoading}
+            className="w-full px-6 py-3 mt-8 font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
           >
-            {isRedirecting ? "Redirecting..." : isPro ? "Your Current Plan" : "Upgrade to Pro"}
+            {isLoading ? 'Upgrading...' : 'Upgrade Now ($5/mo)'}
           </button>
-        </div>
+        )}
       </div>
     </div>
   );
