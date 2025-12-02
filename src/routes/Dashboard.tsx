@@ -1,8 +1,8 @@
 // --- Forcing a cache refresh ---
 import React, { useState } from 'react';
-import { useAppState } from '../state/AppStateContext';
+import { useAppState } from '@/state/AppStateContext';
 import { Link } from 'react-router-dom';
-import { ReminderEvent } from '../types/app-types';
+import { ReminderEvent } from '@/types/app-types.ts';
 import Confetti from 'react-confetti';
 
 function getPingDate(time: string, timezone: string): Date {

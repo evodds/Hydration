@@ -15,7 +15,8 @@
     "react-confetti": "^6.1.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",
-    "react-use": "^17.6.0"
+    "react-use": "^17.6.0",
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

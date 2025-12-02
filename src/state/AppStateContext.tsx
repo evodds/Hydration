@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { AppState, UserProfile, Schedule, AppTier } from '../types/app-types';
+import type { AppState, UserProfile, Schedule, AppTier } from '@/types/app-types.ts';
 import {
   login as apiLogin,
   updateUser as apiUpdateUser,
