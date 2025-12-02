@@ -1,5 +1,6 @@
 ﻿import { useAppState } from '@/state/AppStateContext.tsx';
 import { type FormEvent, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Settings() {
   const { user, updateUser, updateSchedule, schedule } = useAppState();

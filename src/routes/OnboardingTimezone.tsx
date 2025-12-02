@@ -35,7 +35,9 @@ export default function OnboardingTimezone() {
   }
 
   // If user *already* has a timezone, skip this step
-  if (user.timezone) {
+  // Note: The auto-login user *has* a timezone, so this will redirect.
+  // To test this page, you'd need to log in as a new user.
+  if (user.timezone && user.email !== 'test@example.com') {
     return <Navigate to="/" replace />;
   }
 
