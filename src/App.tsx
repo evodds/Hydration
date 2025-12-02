@@ -9,7 +9,7 @@ import History from '@/routes/History.tsx';
 import Plans from '@/routes/Plans.tsx';
 import Settings from '@/routes/Settings.tsx';
 import ProtectedRoute from '@/components/ProtectedRoute.tsx';
-import logoSrc from '@/assets/logo.svg';
+import { ReactComponent as Logo } from '@/assets/logo.svg';
 
 // --- Main App Layout (for logged-in users) ---
 function AppLayout() {
@@ -24,7 +24,7 @@ function AppLayout() {
       {/* Sidebar */}
       <nav className="flex flex-col w-64 p-6 bg-white shadow-lg">
         <div className="flex items-center space-x-2 mb-10">
-          <img src={logoSrc} alt="Hydration logo" className="w-8 h-8" />
+          <Logo className="w-8 h-8 text-blue-600" />
           <span className="text-xl font-bold text-gray-800">Hydration</span>
         </div>
         <div className="space-y-2">
