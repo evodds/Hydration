@@ -1,5 +1,5 @@
-import type { Schedule, DayOfWeek, ReminderEvent } from "../types/app-types";
-import { createId } from "./id";
+import type { Schedule, DayOfWeek, ReminderEvent } from "@/types/app-types.ts";
+import { createId } from "@/utils/id.ts";
 
 export function parseTimeToMinutes(time: string): number {
   const [hRaw, mRaw] = time.split(":").map(Number);
@@ -14,6 +14,14 @@ export function formatMinutesToTime(minutes: number): string {
   const h = Math.floor(normalized / 60);
   const m = normalized % 60;
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+}
+
+export function getPingDate(time: string, timezone: string): Date {
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+  const [h, m] = time.split(":").map(Number);
+  const target = new Date(now);
+  target.setHours(h ?? 0, m ?? 0, 0, 0);
+  return target;
 }
 
 function roundToNearestFive(mins: number): number {

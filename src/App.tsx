@@ -1,14 +1,14 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation, Navigate, Outlet } from 'react-router-dom';
-import { useAppState } from './state/AppStateContext';
-import Landing from './routes/Landing';
-import Auth from './routes/Auth';
-import OnboardingTimezone from './routes/OnboardingTimezone';
-import CreateSchedule from './routes/CreateSchedule';
-import Dashboard from './routes/Dashboard';
-import Settings from './routes/Settings';
-import Plans from './routes/Plans';
-import History from './routes/History';
+import { useAppState } from '@/state/AppStateContext.tsx';
+import Landing from '@/routes/Landing.tsx';
+import Auth from '@/routes/Auth.tsx';
+import OnboardingTimezone from '@/routes/OnboardingTimezone.tsx';
+import CreateSchedule from '@/routes/CreateSchedule.tsx';
+import Dashboard from '@/routes/Dashboard.tsx';
+import Settings from '@/routes/Settings.tsx';
+import Plans from '@/routes/Plans.tsx';
+import History from '@/routes/History.tsx';
 
 function AppLayout() {
   const { logout } = useAppState(); // Get logout

@@ -1,91 +1,74 @@
-import type { UserProfile, Schedule, ReminderEvent } from '../types/app-types';
+﻿import type { UserProfile, Schedule, ReminderEvent } from '@/types/app-types.ts';
 
-// Helper for API requests
-async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
+const API_BASE = '/api'; // Uses the proxy we set up in vite.config.ts
 
+// Helper for handling fetch responses
+const handleResponse = async (response: Response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'API request failed' }));
-    throw new Error(errorData.message || 'An unknown error occurred');
+    const error = await response.json().catch(() => ({ message: 'API request failed' }));
+    throw new Error(error.message || 'API request failed');
   }
-  return response.json() as Promise<T>;
-}
+  return response.json();
+};
 
-// --- Auth ---
-export async function login(email: string): Promise<UserProfile> {
-  // The backend stub will find-or-create a user by email
-  return apiRequest<UserProfile>('/api/auth/login', {
+// 1. Auth: Login / Get User
+export const login = async (email: string): Promise<UserProfile> => {
+  const response = await fetch(`${API_BASE}/login`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   });
-}
+  return handleResponse(response);
+};
 
-// --- User ---
-export async function updateUser(userId: string, partialUser: Partial<UserProfile>): Promise<UserProfile> {
-  return apiRequest<UserProfile>(`/api/user/${userId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(partialUser),
+// 2. User: Update User
+export const updateUser = async (userId: string, updates: Partial<UserProfile>): Promise<UserProfile> => {
+  const response = await fetch(`${API_BASE}/users/${userId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
   });
-}
+  return handleResponse(response);
+};
 
-// --- Schedule ---
-export async function fetchSchedule(userId: string): Promise<Schedule | null> {
-  // Our backend stub only supports one schedule per user
-  return apiRequest<Schedule | null>(`/api/user/${userId}/schedule`);
-}
+// 3. Schedule: Get Schedule
+export const getSchedule = async (userId: string): Promise<Schedule | null> => {
+  const response = await fetch(`${API_BASE}/users/${userId}/schedule`);
+  return handleResponse(response);
+};
 
-export async function saveSchedule(userId: string, schedule: Omit<Schedule, 'id' | 'createdAt' | 'updatedAt'>): Promise<Schedule> {
-  return apiRequest<Schedule>(`/api/user/${userId}/schedule`, {
+// 4. Schedule: Create Schedule
+export const createSchedule = async (userId: string, schedule: Omit<Schedule, 'id' | 'userId'>): Promise<Schedule> => {
+  const response = await fetch(`${API_BASE}/users/${userId}/schedule`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(schedule),
   });
-}
+  return handleResponse(response);
+};
 
-export async function updateSchedule(userId: string, scheduleId: string, partialSchedule: Partial<Schedule>): Promise<Schedule> {
-  return apiRequest<Schedule>(`/api/user/${userId}/schedule/${scheduleId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(partialSchedule),
+// 5. Schedule: Update Schedule
+export const updateSchedule = async (userId: string, scheduleId: string, updates: Partial<Schedule>): Promise<Schedule> => {
+  const response = await fetch(`${API_BASE}/users/${userId}/schedule/${scheduleId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
   });
-}
+  return handleResponse(response);
+};
 
-// --- Events ---
-export async function fetchReminderEvents(userId: string): Promise<ReminderEvent[]> {
-  return apiRequest<ReminderEvent[]>(`/api/user/${userId}/events`);
-}
+// 6. Reminders: Get Reminder Events
+export const getReminderEvents = async (userId: string): Promise<ReminderEvent[]> => {
+  const response = await fetch(`${API_BASE}/users/${userId}/reminders`);
+  return handleResponse(response);
+};
 
-export async function logReminderAction(userId: string, eventId: string, status: 'drank' | 'skipped'): Promise<ReminderEvent> {
-  return apiRequest<ReminderEvent>(`/api/user/${userId}/events/${eventId}`, {
-    method: 'PATCH',
+// 7. Reminders: Update Reminder Event (Log drank/skipped)
+export const updateReminderEvent = async (userId: string, eventId: string, status: 'drank' | 'skipped'): Promise<ReminderEvent> => {
+  const response = await fetch(`${API_BASE}/users/${userId}/reminders/${eventId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
-}
-
-// --- Billing ---
-export async function createCheckoutSession(userId: string, priceId: string): Promise<{ url: string }> {
-  return apiRequest<{ url: string }>('/api/billing/create-checkout-session', {
-    method: 'POST',
-    body: JSON.stringify({ userId, priceId }),
-  });
-}
-
-// --- SMS (Twilio) ---
-export async function updateUserPhone(userId: string, phone: string): Promise<UserProfile> {
-  return apiRequest<UserProfile>(`/api/sms/user/${userId}/phone`, {
-    method: 'PATCH',
-    body: JSON.stringify({ phone }),
-  });
-}
-
-export async function sendTestSms(userId: string): Promise<{ success: boolean; message: string }> {
-  return apiRequest<{ success: boolean; message: string }>(`/api/sms/user/${userId}/send-test`, {
-    method: 'POST',
-  });
-}
-
-
+  return handleResponse(response);
+};

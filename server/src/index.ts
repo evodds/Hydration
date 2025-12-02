@@ -1,205 +1,167 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
-import { randomUUID } from "crypto";
-import type {
-  BackendReminderEvent,
-  BackendSchedule,
-  BackendUser,
-  BackendReminderStatus,
-} from "./types";
-import billingRoutes from "./billing.routes";
-import smsRoutes from "./sms.routes";
+﻿import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { UserProfile, Schedule, ReminderEvent } from '../../src/types/app-types';
 
 const app = express();
+const port = 3001;
+
 app.use(cors());
+app.use(bodyParser.json());
 
-// --- In-memory database (replace with real DB later) ---
-interface Database {
-  users: BackendUser[];
-  schedules: BackendSchedule[];
-  events: BackendReminderEvent[];
-}
-
-export const db: Database = {
-  users: [],
-  schedules: [],
-  events: [],
+// --- MOCK DATABASES ---
+// We'll use simple in-memory objects to act as our database for now.
+const MOCK_DB = {
+  users: new Map<string, UserProfile>(),
+  schedules: new Map<string, Schedule | null>(),
+  reminderEvents: new Map<string, ReminderEvent[]>(),
 };
 
-function parseTimeToMinutes(time: string) {
-  const [hRaw, mRaw] = time.split(":").map(Number);
-  if (Number.isNaN(hRaw) || Number.isNaN(mRaw)) return 0;
-  const h = Math.min(Math.max(hRaw, 0), 23);
-  const m = Math.min(Math.max(mRaw, 0), 59);
-  return h * 60 + m;
-}
+// --- HELPER TO INIT MOCK DATA ---
+const initMockUser = (email: string): UserProfile => {
+  const existingUser = Array.from(MOCK_DB.users.values()).find((u) => u.email === email);
+  if (existingUser) return existingUser;
 
-function formatMinutesToTime(minutes: number) {
-  const normalized = ((minutes % 1440) + 1440) % 1440;
-  const h = Math.floor(normalized / 60);
-  const m = normalized % 60;
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-}
+  const userId = `user_${Date.now()}`;
+  const newUser: UserProfile = {
+    id: userId,
+    email: email,
+    timezone: 'America/Los_Angeles',
+    tier: 'free',
+    createdAt: new Date().toISOString(),
+    currentStreak: 0,
+    longestStreak: 0,
+  };
+  MOCK_DB.users.set(userId, newUser);
+  MOCK_DB.schedules.set(userId, null); // No schedule initially
+  MOCK_DB.reminderEvents.set(userId, []); // No events initially
+  return newUser;
+};
 
-function generateEventsForSchedule(schedule: BackendSchedule, userId: string): BackendReminderEvent[] {
-  if (!schedule.isActive || schedule.numPings < 1) return [];
-  const start = parseTimeToMinutes(schedule.startTime);
-  const end = parseTimeToMinutes(schedule.endTime);
-  if (end <= start) return [];
-  const interval = (end - start) / (schedule.numPings + 1);
-  const times: string[] = [];
-  for (let i = 1; i <= schedule.numPings; i += 1) {
-    const raw = start + interval * i;
-    const rounded = Math.round(raw / 5) * 5;
-    times.push(formatMinutesToTime(rounded));
+// --- API ENDPOINTS ---
+
+// 1. Auth: Login / Get User
+app.post('/api/login', (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
   }
-  const today = new Date();
-  const dateKey = today.toISOString().slice(0, 10);
-  return times.map((time) => {
-    const [h, m] = time.split(":").map(Number);
-    const scheduledAt = new Date(today);
-    scheduledAt.setHours(h, m, 0, 0);
-    return {
-      id: randomUUID(),
-      userId,
-      scheduleId: schedule.id,
-      date: dateKey,
-      time,
-      scheduledAt: scheduledAt.toISOString(),
-      status: "scheduled" as BackendReminderStatus,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  });
-}
-
-// --- Middleware ---
-app.use(
-  "/api/billing/webhook",
-  express.raw({ type: "application/json" })
-);
-app.use(express.json());
-
-app.use("/api/billing", billingRoutes);
-app.use("/api/sms", smsRoutes);
-
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
-
-app.post("/api/auth/login", (req, res) => {
-  const email = (req.body?.email as string | undefined)?.toLowerCase().trim();
-  if (!email) return res.status(400).json({ error: "email required" });
-  let user = db.users.find((u) => u.email === email);
-  if (!user) {
-    const now = new Date().toISOString();
-    user = {
-      id: randomUUID(),
-      email,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      tier: "free",
-      currentStreak: 0,
-      longestStreak: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-    db.users.push(user);
-  }
+  console.log(`[Server] Login attempt for: ${email}`);
+  const user = initMockUser(email);
   res.json(user);
 });
 
-app.get("/api/user/:id", (req, res) => {
-  const user = db.users.find((u) => u.id === req.params.id);
-  if (!user) return res.status(404).json({ error: "not found" });
-  res.json(user);
-});
-
-app.patch("/api/user/:id", (req, res) => {
-  const idx = db.users.findIndex((u) => u.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: "not found" });
-  const updated: BackendUser = {
-    ...db.users[idx],
-    ...req.body,
-    updatedAt: new Date().toISOString(),
-  };
-  db.users[idx] = updated;
-  res.json(updated);
-});
-
-// Single schedule per user endpoints
-app.get("/api/user/:userId/schedule", (req, res) => {
-  const schedule = db.schedules.find((s) => s.userId === req.params.userId) || null;
-  res.json(schedule);
-});
-
-app.post("/api/user/:userId/schedule", (req, res) => {
-  const now = new Date().toISOString();
-  db.schedules = db.schedules.filter((s) => s.userId !== req.params.userId);
-  const schedule: BackendSchedule = {
-    ...req.body,
-    id: randomUUID(),
-    userId: req.params.userId,
-    createdAt: now,
-    updatedAt: now,
-  };
-  db.schedules.push(schedule);
-  db.events = db.events.filter((ev) => ev.userId !== req.params.userId);
-  const newEvents = generateEventsForSchedule(schedule, req.params.userId);
-  db.events.push(...newEvents);
-  res.status(201).json(schedule);
-});
-
-app.patch("/api/user/:userId/schedule/:scheduleId", (req, res) => {
-  const idx = db.schedules.findIndex((s) => s.id === req.params.scheduleId);
-  if (idx === -1) return res.status(404).json({ error: "not found" });
-  const updated: BackendSchedule = {
-    ...db.schedules[idx],
-    ...req.body,
-    updatedAt: new Date().toISOString(),
-  };
-  db.schedules[idx] = updated;
-  db.events = db.events.filter((ev) => ev.scheduleId !== updated.id);
-  const newEvents = generateEventsForSchedule(updated, req.params.userId);
-  db.events.push(...newEvents);
-  res.json(updated);
-});
-
-app.get("/api/user/:userId/events", (req, res) => {
-  const list = db.events.filter((e) => e.userId === req.params.userId);
-  res.json(list);
-});
-
-app.patch("/api/user/:userId/events/:eventId", (req, res) => {
-  const idx = db.events.findIndex((ev) => ev.id === req.params.eventId);
-  if (idx === -1) return res.status(404).json({ error: "not found" });
-  const status = req.body?.status as BackendReminderStatus | undefined;
-  if (!status || !["scheduled", "drank", "skipped"].includes(status)) {
-    return res.status(400).json({ error: "invalid status" });
-  }
-  db.events[idx] = {
-    ...db.events[idx],
-    status,
-    updatedAt: new Date().toISOString(),
-  };
-  const updatedEvent = db.events[idx];
-
-  // --- STREAK LOGIC STUB ---
+// 2. User: Update User
+app.put('/api/users/:userId', (req, res) => {
   const { userId } = req.params;
-  const user = db.users.find((u) => u.id === userId);
-  if (user && status === "drank") {
-    user.currentStreak += 1;
-    if (user.currentStreak > user.longestStreak) {
-      user.longestStreak = user.currentStreak;
-    }
-  }
-  // --- END STREAK LOGIC ---
+  const updates = req.body as Partial<UserProfile>;
+  const user = MOCK_DB.users.get(userId);
 
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const updatedUser = { ...user, ...updates, id: userId }; // Ensure ID isn't overwritten
+  MOCK_DB.users.set(userId, updatedUser);
+  console.log(`[Server] Updated user ${userId}:`, updatedUser);
+  res.json(updatedUser);
+});
+
+// 3. Schedule: Get Schedule
+app.get('/api/users/:userId/schedule', (req, res) => {
+  const { userId } = req.params;
+  const schedule = MOCK_DB.schedules.get(userId);
+  console.log(`[Server] Fetched schedule for ${userId}:`, schedule);
+  res.json(schedule || null);
+});
+
+// 4. Schedule: Create Schedule
+app.post('/api/users/:userId/schedule', (req, res) => {
+  const { userId } = req.params;
+  const newSchedule = req.body as Schedule;
+
+  if (!MOCK_DB.users.has(userId)) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  newSchedule.id = `sch_${Date.now()}`;
+  newSchedule.userId = userId;
+  MOCK_DB.schedules.set(userId, newSchedule);
+
+  // When a schedule is created, generate mock events for it
+  const events: ReminderEvent[] = [];
+  // ... (In a real app, your `generatePingTimes` logic would live here)
+  // For now, let's just create a few mock events
+  if (newSchedule.daysOfWeek.includes(new Date().getDay())) {
+    events.push(
+      {
+        id: `evt_1`,
+        scheduleId: newSchedule.id,
+        pingTime: '09:15',
+        status: null,
+        dayOfWeek: new Date().getDay(),
+      },
+      {
+        id: `evt_2`,
+        scheduleId: newSchedule.id,
+        pingTime: '11:45',
+        status: null,
+        dayOfWeek: new Date().getDay(),
+      }
+    );
+  }
+  MOCK_DB.reminderEvents.set(userId, events);
+
+  console.log(`[Server] Created schedule for ${userId}:`, newSchedule);
+  res.status(201).json(newSchedule);
+});
+
+// 5. Schedule: Update Schedule
+app.put('/api/users/:userId/schedule/:scheduleId', (req, res) => {
+  const { userId, scheduleId } = req.params;
+  const updates = req.body as Partial<Schedule>;
+  const schedule = MOCK_DB.schedules.get(userId);
+
+  if (!schedule || schedule.id !== scheduleId) {
+    return res.status(404).json({ error: 'Schedule not found' });
+  }
+
+  const updatedSchedule = { ...schedule, ...updates, id: scheduleId, userId: userId };
+  MOCK_DB.schedules.set(userId, updatedSchedule);
+  console.log(`[Server] Updated schedule ${scheduleId}:`, updatedSchedule);
+  res.json(updatedSchedule);
+});
+
+// 6. Reminders: Get Reminder Events
+app.get('/api/users/:userId/reminders', (req, res) => {
+  const { userId } = req.params;
+  const events = MOCK_DB.reminderEvents.get(userId) || [];
+  console.log(`[Server] Fetched ${events.length} events for ${userId}`);
+  res.json(events);
+});
+
+// 7. Reminders: Update Reminder Event (Log drank/skipped)
+app.put('/api/users/:userId/reminders/:eventId', (req, res) => {
+  const { userId, eventId } = req.params;
+  const { status } = req.body as { status: 'drank' | 'skipped' };
+  const events = MOCK_DB.reminderEvents.get(userId);
+
+  if (!events) {
+    return res.status(404).json({ error: 'No events found for user' });
+  }
+
+  const eventIndex = events.findIndex((e) => e.id === eventId);
+  if (eventIndex === -1) {
+    return res.status(404).json({ error: 'Event not found' });
+  }
+
+  const updatedEvent = { ...events[eventIndex], status: status };
+  events[eventIndex] = updatedEvent;
+
+  console.log(`[Server] Updated event ${eventId} to ${status}`);
   res.json(updatedEvent);
 });
 
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`[Server] API is running on http://localhost:${port}`);
 });

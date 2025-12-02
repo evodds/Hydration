@@ -1,121 +1,90 @@
-import { type FormEvent, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAppState } from "../state/AppStateContext";
+ï»¿import { useAppState } from '@/state/AppStateContext.tsx';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { type FormEvent, useState } from 'react';
 
-const timezones = [
-  "Use browser timezone",
-  "America/Los_Angeles",
-  "America/Denver",
-  "America/Chicago",
-  "America/New_York",
-  "Europe/London",
-  "Europe/Berlin",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-  "UTC",
-];
+// Get a list of common timezones
+const timezones = Intl.supportedValuesOf('timeZone');
 
 export default function OnboardingTimezone() {
+  const { user, updateUser } = useAppState();
   const navigate = useNavigate();
-  const { state, setUser } = useAppState();
-  const initial = useMemo(
-    () => state.user?.timezone || "Use browser timezone",
-    [state.user]
-  );
-  const [tz, setTz] = useState(initial);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const resolveTimezone = () =>
-    tz === "Use browser timezone"
-      ? Intl.DateTimeFormat().resolvedOptions().timeZone
-      : tz;
-
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!state.user) {
-      navigate("/auth");
-      return;
+    setError(null);
+    setIsLoading(true);
+
+    const formData = new FormData(e.target as HTMLFormElement);
+    const timezone = formData.get('timezone') as string;
+
+    try {
+      // Use the new updateUser function
+      await updateUser({ timezone: timezone });
+      navigate('/onboarding/create-schedule');
+    } catch (err: any) {
+      setError(err.message || 'Failed to save timezone');
     }
-    setUser({ ...state.user, timezone: resolveTimezone() });
-    navigate("/schedule/create");
+    setIsLoading(false);
   };
 
-  const handleSkip = () => {
-    if (!state.user) {
-      navigate("/auth");
-      return;
-    }
-    setUser({
-      ...state.user,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
-    navigate("/schedule/create");
-  };
+  // If user is somehow not logged in, send to auth
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // If user *already* has a timezone, skip this step
+  if (user.timezone) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
-    <div className="mx-auto flex max-w-3xl items-center justify-center px-4">
-      <div className="w-full space-y-8 rounded-3xl border border-white/60 bg-white/80 px-6 py-8 shadow-soft backdrop-blur sm:px-8 sm:py-10 fade-in-up">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-hhp-primarySoft px-3 py-1 text-[11px] font-semibold text-hhp-primary">
-            We’ll match pings to your day
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-hhp-ink">Which timezone do you live in?</h1>
-          <p className="text-sm leading-relaxed text-hhp-inkMuted">
-            We’ll schedule your reminders based on this. You can change it later.
-          </p>
-        </div>
-
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-lg p-8 space-y-6 bg-white rounded-xl shadow-lg">
+        <h2 className="text-3xl font-bold text-center text-gray-800">
+          Set your timezone
+        </h2>
+        <p className="text-center text-gray-600">
+          This helps us send your pings at the right time of day.
+        </p>
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4">
-            <div className="flex items-center justify-between text-xs font-semibold text-hhp-inkMuted">
-              <span>Detected timezone</span>
-              <span className="rounded-full bg-hhp-primarySoft px-3 py-1 text-hhp-primary">Suggested</span>
-            </div>
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-card ring-hhp-primary transition hover:border-hhp-primary hover:ring-2">
-              <input
-                type="radio"
-                className="mt-1 h-4 w-4 text-hhp-primary focus:ring-hhp-primary"
-                checked={tz === "Use browser timezone"}
-                onChange={() => setTz("Use browser timezone")}
-              />
-              <div className="space-y-1">
-                <div className="text-sm font-semibold text-hhp-ink">Use my current timezone</div>
-                <p className="text-xs text-hhp-inkMuted">
-                  Detected: {Intl.DateTimeFormat().resolvedOptions().timeZone}
-                </p>
-              </div>
+          <div>
+            <label
+              htmlFor="timezone"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Your Timezone
             </label>
-
-            <div className="space-y-2 text-sm">
-              <div className="text-xs font-semibold uppercase tracking-wide text-hhp-inkMuted">Or choose another</div>
+            <div className="mt-1">
               <select
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-hhp-ink placeholder:text-slate-400 transition focus:border-hhp-primary focus:outline-none focus:ring-2 focus:ring-hhp-primary/30"
-                value={tz}
-                onChange={(e) => setTz(e.target.value)}
+                id="timezone"
+                name="timezone"
+                required
+                disabled={isLoading}
+                defaultValue={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                {timezones.map((zone) => (
-                  <option key={zone} value={zone}>
-                    {zone}
+                {timezones.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-hhp-inkMuted">We’ll use this for all schedule times.</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          {error && (
+            <p className="text-sm text-center text-red-600">{error}</p>
+          )}
+
+          <div>
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-hhp-primary to-cyan-400 px-6 py-2.5 text-sm font-semibold text-white shadow-soft transition duration-150 ease-out hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hhp-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              disabled={isLoading}
+              className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
             >
-              Continue
-            </button>
-            <button
-              type="button"
-              className="text-sm font-medium text-hhp-inkMuted underline-offset-4 transition hover:text-hhp-ink hover:underline"
-              onClick={handleSkip}
-            >
-              Skip for now
+              {isLoading ? 'Saving...' : 'Save and Continue'}
             </button>
           </div>
         </form>
