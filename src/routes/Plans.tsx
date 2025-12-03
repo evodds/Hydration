@@ -8,8 +8,8 @@ const CheckIcon = (props: React.ComponentProps<'svg'>) => (
   </svg>
 );
 
-// TODO: Replace with your actual Stripe Price ID from the Dashboard
-const STRIPE_PRICE_ID = 'price_1SYBcAAaoKTpBVmXlcrEwbt';
+// REPLACE WITH YOUR ACTUAL STRIPE PRICE ID
+const STRIPE_PRICE_ID = 'price_1SYBcAAaoKTpBVmXlcrEwbt'; 
 
 export default function Plans() {
   const { user } = useAppState();
