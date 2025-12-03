@@ -19,6 +19,7 @@ export default function Plans() {
     setIsLoading(true);
     setError(null);
     try {
+      // Simulating upgrade for now
       await setTier('pro');
       alert('Simulating successful upgrade to Pro!');
     } catch (err: any) {
