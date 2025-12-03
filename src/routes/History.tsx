@@ -8,12 +8,7 @@ export default function History() {
   const todayEvents = reminderEvents.filter((e) => getPingDate(e.pingTime, user.timezone).toDateString() === new Date().toDateString());
   const completion = {
     'Today': todayEvents.filter(e => e.status === 'drank').length / todayEvents.length || 0,
-    'Yesterday': 0.8,
-    '2 days ago': 1.0,
-    '3 days ago': 0.7,
-    '4 days ago': 0.9,
-    '5 days ago': 0.5,
-    '6 days ago': 1.0,
+    'Yesterday': 0.8, '2 days ago': 1.0, '3 days ago': 0.7, '4 days ago': 0.9, '5 days ago': 0.5, '6 days ago': 1.0,
   };
   
   const stats = [

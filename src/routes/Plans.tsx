@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppState } from '@/state/AppStateContext.tsx';
+import { Link } from 'react-router-dom';
 
 const CheckIcon = (props: React.ComponentProps<'svg'>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5" {...props}>
@@ -32,7 +33,7 @@ export default function Plans() {
       {error && <div className="p-4 mb-6 text-red-800 bg-red-100 rounded-lg">{error}</div>}
       <div className="p-8 bg-white rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-gray-800">{isPro ? 'You are on the Pro Plan' : 'Upgrade to Pro'}</h2>
-        <p className="mt-4 text-gray-600">{isPro ? 'Thanks for being a Pro user! You have access to all features.' : 'Get SMS reminders, multiple schedules, and more.'}</p>
+        <p className="mt-4 text-gray-600">{isPro ? 'Thanks for being a Pro user!' : 'Get SMS reminders, multiple schedules, and more.'}</p>
         <ul className="mt-6 space-y-3 text-gray-700">
           <li className="flex items-center space-x-3"><CheckIcon className="text-green-500" /><span>Browser-based reminders</span></li>
           <li className="flex items-center space-x-3"><CheckIcon className="text-green-500" /><span>Basic hydration tracking</span></li>
