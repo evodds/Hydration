@@ -9,7 +9,7 @@ const CheckIcon = (props: React.ComponentProps<'svg'>) => (
 );
 
 // REPLACE WITH YOUR ACTUAL STRIPE PRICE ID
-const STRIPE_PRICE_ID = 'price_1SYBcAAaoKTpBVmXlcrEwbt'; 
+const STRIPE_PRICE_ID = 'price_1SYfBcAAaoKTpBVmXlcrEwbt'; 
 
 export default function Plans() {
   const { user } = useAppState();
