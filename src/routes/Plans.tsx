@@ -1,8 +1,7 @@
-﻿import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { useAppState } from '@/state/AppStateContext.tsx';
-import { Link } from 'react-router-dom';
 
-const CheckIcon = (props: React.ComponentProps<'svg'>) => (
+const CheckIcon = (props: ComponentProps<'svg'>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 20 20"
@@ -30,11 +29,6 @@ export default function Plans() {
     setIsLoading(true);
     setError(null);
     try {
-      // --- THIS LOGIC IS BROKEN, SO WE'LL SIMULATE IT ---
-      // const { url } = await createCheckoutSession(user.id, 'price_PRO_MONTHLY');
-      // window.location.href = url;
-
-      // For now, we'll just optimistically upgrade
       await setTier('pro');
       alert('Simulating successful upgrade to Pro!');
     } catch (err: any) {
